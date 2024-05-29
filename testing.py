@@ -1,3 +1,5 @@
+# This code was written to give experience in using callback functions via ctypes (written with testCcode.c)
+
 import numpy as np
 from matplotlib import pyplot as plt
 import ctypes

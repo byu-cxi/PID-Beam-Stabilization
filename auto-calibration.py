@@ -1,3 +1,6 @@
+# This code is used to find constants in the vals.py file
+# it moves the motor to find out how many steps of the motor move the beam center by one pixel
+
 cam_num = 1
 mot_num = 1 # current setup: 1=Y, 2=X
 num_steps = 1000

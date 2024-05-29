@@ -1,3 +1,5 @@
+# This is the minimal amount of code to take an image in a Mightex camera using callback functions
+
 import os
 import time
 import ctypes

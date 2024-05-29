@@ -1,3 +1,5 @@
+# This is the main file that will be run to stabilize the beam
+
 import time
 import ctypes
 from ctypes.wintypes import MSG

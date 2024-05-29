@@ -1,3 +1,5 @@
+# useful values that are good to have all over the place
+
 height = 2560
 width = 1920
 metadata_size = 128

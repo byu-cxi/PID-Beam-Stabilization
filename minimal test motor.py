@@ -1,3 +1,5 @@
+# This code is the bare minimum to make a Newport motor move
+
 from pylablib.devices import Newport
 
 print("num devices =", Newport.get_usb_devices_number_picomotor())
