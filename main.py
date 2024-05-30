@@ -7,6 +7,7 @@ import numpy as np
 from scipy.ndimage import center_of_mass
 from helper import * # helper.py in directory
 from vals import *   # vals.py in directory
+from pylablib.devices import Newport
 user32 = ctypes.windll.user32
 
 
@@ -14,12 +15,12 @@ cam_dll = ctypes.cdll.LoadLibrary(dll_path)
 cam_num = 1 # one-indexed, references camera from the initDevice function
 c_int = ctypes.c_int
 
-baseline_center = (0,0) # will be set on the first image
+baseline_center = (0,0)     # will be set on the first image
 baseline_not_set = True 
-curr_img_center = (0,0)      # this is used to pass data from the callback function into the main code
+curr_img_center = (0,0)     # this is used to pass data from the callback function into the main code
 images_received_counter = 0
 images_processed_counter = 0
-n = 5 # positive int
+n = 20                      # int > 1 - used to control how far back the Integral can see in the PID controller
 error_tracker = [[0.,0.]]*n
 
     
@@ -75,13 +76,14 @@ def PID(axis, error_tracker):
     global n
     final_elements = np.array(error_tracker).transpose()[axis, -n:] # array of n elements
 
-    P = .7
-    I = 0
-    D = 0
+    P = .65         # adjust this until you see oscillations after move, then divide by 2
+    I = .3 / n      # adjust this to reduce oscillations, and change n to somewhat large value
+    D = 0           # Not going to include D because A) papers said that it wasn't necessary, and
+                                                #    B) Don't have a reliable way to track timing
 
-    P_contribution = P * final_elements[n-1]
-    I_contribution = I # TODO
-    D_contribution = D # TODO
+    P_contribution = - P * final_elements[n-1]
+    I_contribution = - I * np.sum(final_elements)
+    D_contribution = - D * (final_elements[n-1] - final_elements[n-2])
 
     return P_contribution + I_contribution + D_contribution
 
@@ -145,26 +147,42 @@ i = 0
 time_steps = []
 print("Starting stabilization loop now")
 continue_loop = True # will be set to false on ctrl-c
-while continue_loop:
-    i += 1
-    # These three functions are neccessary to get data out of the callback function
-    GM(ctypes.pointer(msg), 0, 0, 0)
-    TM(ctypes.pointer(msg))
-    DM(ctypes.pointer(msg))
+with Newport.Picomotor8742() as nwpt:
+    while continue_loop:
+        i += 1
+        # These three functions are neccessary to get data out of the callback function
+        GM(ctypes.pointer(msg), 0, 0, 0)
+        TM(ctypes.pointer(msg))
+        DM(ctypes.pointer(msg))
 
-    if curr_img_center == (0,0): # (0,0) means that a new image hasn't been processed yet
-        time.sleep(.01)
-        continue
+        if curr_img_center == (0,0): # (0,0) means that a new image hasn't been processed yet
+            time.sleep(.01)
+            continue
+        elif (np.isnan(curr_img_center[0]) or np.isnan(curr_img_center[1])): # center of mass gives NaN when given array of 0's
+            raise Exception("No signal detected: is the beam on the camera?")
 
-    y_err, x_err = TupleSubtract(curr_img_center, baseline_center)
-    curr_img_center = (0,0)
-    images_processed_counter += 1
-    error_tracker.append([y_err, x_err])
+        y_err, x_err = TupleSubtract(curr_img_center, baseline_center)
+        curr_img_center = (0,0)
+        images_processed_counter += 1
+        error_tracker.append([y_err, x_err])
 
-    y_pixel_shift = PID(0, error_tracker) # 0 is Y, 1 is X
-    x_pixel_shift = PID(1, error_tracker)
+        y_pixel_shift = PID(0, error_tracker) # 0 for Y, 1 for X
+        x_pixel_shift = PID(1, error_tracker)
 
-    time_steps.append(time.time())
+        y_step_num = int(y_pixel_shift * y_pixel_to_motorstep_conversion)
+        x_step_num = int(x_pixel_shift * x_pixel_to_motorstep_conversion)
+
+        # Note: I guess in the docs, "device" refers to the controller board, not the motor
+        if abs(y_step_num) > 5:
+            nwpt.move_by(1, y_step_num) # 1 for Y, 2 for X
+            while (nwpt.is_moving(axis=1)): # yes I could use the nwpt.wait_move() function
+                time.sleep(.001)            # but in the pylablib source code it does exactly this
+        if abs(x_step_num) > 5:             # sequence, except sleeps for .01 instead of .001 seconds
+            nwpt.move_by(2, x_step_num)     # and the higher precision can't hurt
+            while (nwpt.is_moving(axis=2)):
+                time.sleep(.001)
+
+        time_steps.append(time.time())
 
 
 
