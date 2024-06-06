@@ -15,6 +15,8 @@ c_int = ctypes.c_int
 height = 2560
 width = 1920
 metadata_size = 128
+bin_choice = 2
+bin = 2**bin_choice
 img_size = metadata_size + (height*width)
 
 # -----------------Callback things-----------------------
@@ -43,12 +45,19 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
                 ( "FrameProcessType", c_int ),
                 ( "FilterAcceptForFile", c_int ) ]
 
-FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*1280*960))#(height*width//4)))
+FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height//bin)*(width//bin)))
 
 import numpy as np
 from scipy.ndimage import center_of_mass
+first = True
 def FrameHook(info, data):
     print("center mass at", center_of_mass(np.array(data.contents)))
+    global first
+    if first:
+        first = False
+        from matplotlib import pyplot as plt
+        plt.imshow(data.contents)
+        plt.show()
 
 
 # ---------- Start camera running ----------
@@ -61,6 +70,9 @@ if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
 if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
     raise Exception("Camera not in working set")
 
+if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+    raise Exception("Resolution setting didn't work:", res_response)
+
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
     raise Exception("Frame hooker start failed")
@@ -72,7 +84,7 @@ if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
     raise Exception("Frame grabbing failed")
 
 import time
-time.sleep(3)
+time.sleep(1)
 
 # ---------- run loop! ----------
 msg = MSG()

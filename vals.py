@@ -9,5 +9,8 @@ dll_path = "C:\\Users\\hct10\\Documents\\Classes\\CURRENT\\Sandberg Research\\Co
 
 # get these values from calibration code
 # gives (Picomotor steps / pixel change)
-y_pixel_to_motorstep_conversion = -30
-x_pixel_to_motorstep_conversion = -25
+y_pixel_to_motorstep_conversion = -2.9 #-23
+x_pixel_to_motorstep_conversion = 1.8 #-20
+
+bin_choice = 0 # ranges from 0 (no binning) to 2 (bin by 4)
+binning = 2**bin_choice

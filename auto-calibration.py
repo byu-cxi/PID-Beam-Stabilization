@@ -2,8 +2,8 @@
 # it moves the motor to find out how many steps of the motor move the beam center by one pixel
 
 cam_num = 1
-mot_num = 1 # current setup: 1=Y, 2=X
-num_steps = 1000
+mot_num = 2 # current setup: 1=Y, 2=X
+num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
 
@@ -57,11 +57,11 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
                 ( "FrameProcessType", c_int ),
                 ( "FilterAcceptForFile", c_int ) ]
 
-FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height*width//4)))
+FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height//binning)*(width//binning)))
 
 def FrameHook(info, data):
-    img = np.flip(np.array(data.contents, dtype=float).reshape((width//2, height//2)), 0)
-    img[img<100] = 0
+    img = np.flip(np.array(data.contents).reshape((width//binning, height//binning)), 0)
+    img[img < (np.max(np.max(img))/1.5)] = 0 # set everything less than (1/1.5)*max to 0
     center_mass = center_of_mass(img)
     global baseline_center
     global baseline_not_set
@@ -88,6 +88,8 @@ if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
     raise Exception("Camera didn't connect (might be invalid device number)")
 if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
     raise Exception("Camera not in working set")
+if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+    raise Exception("Resolution setting didn't work:", res_response)
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
     raise Exception("Frame hooker start failed")
@@ -103,7 +105,7 @@ GM = user32.GetMessageA
 TM = user32.TranslateMessage
 DM = user32.DispatchMessageA
 
-t_end = time.time() + 3
+t_end = time.time() + 5
 while time.time() < t_end:
     GM(ctypes.pointer(msg), 0, 0, 0)
     TM(ctypes.pointer(msg))
@@ -130,7 +132,7 @@ with Newport.Picomotor8742() as nwpt:
 
 delay_var = True
 # ---------- Find new average center -----------t_end = time.time() + 3
-t_end = time.time() + 3
+t_end = time.time() + 5
 while time.time() < t_end:
     # These three functions are neccessary to get data out of the callback function
     GM(ctypes.pointer(msg), 0, 0, 0)

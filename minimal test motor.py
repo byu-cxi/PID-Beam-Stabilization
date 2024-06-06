@@ -5,15 +5,16 @@ import time
 
 print("num devices =", Newport.get_usb_devices_number_picomotor())
 with Newport.Picomotor8742() as nwpt:
-    for i in range(2):
-        #print("available axes =", nwpt.get_all_axes())
-        #mot_axis = 1 # 1=Y, 2=X
-        nwpt.move_by(2, 1000)
-        #nwpt.move_by(2, -1)
-        while (nwpt.is_moving(axis=1)):
-            time.sleep(.001)
-        # while (nwpt.is_moving(axis=2)):
-        #     time.sleep(.001)
+    #print("available axes =", nwpt.get_all_axes())
+    #mot_axis = 1 # 1=Y, 2=X
+    t = time.time()
+    nwpt.move_by(2, 10)
+    #nwpt.move_by(2, -1)
+    while (nwpt.is_moving(axis=2)):
+        time.sleep(.001)
+    delt = time.time() - t
+    # while (nwpt.is_moving(axis=2)):
+    #     time.sleep(.001)
 
 #nwpt.close()
 """
@@ -24,4 +25,4 @@ with Newport.Picomotor8742() as nwpt:
     nwpt.move_by(mot_axis, -4000)
 """
 
-print("Program finished")
+print("Program finished: took", delt, "seconds")

@@ -1,0 +1,148 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      4116,        140]
+NotebookOptionsPosition[      3728,        125]
+NotebookOutlinePosition[      4163,        142]
+CellTagsIndexPosition[      4120,        139]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"Let", " ", 
+    StyleBox["M",
+     FontWeight->"Bold"]}], "=", 
+   RowBox[{"(", "\[NoBreak]", GridBox[{
+      {"a", "b"},
+      {"c", "d"}
+     }], "\[NoBreak]", ")"}]}], "   ", ",", "   ", 
+  RowBox[{"Where", "  ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{
+      StyleBox["M",
+       FontWeight->"Bold"], 
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          SubscriptBox["mov", "1"]},
+         {
+          SubscriptBox["mov", "2"]}
+        }], "\[NoBreak]", ")"}]}], "=", 
+     RowBox[{"(", "\[NoBreak]", GridBox[{
+        {
+         SubscriptBox["err", "1"]},
+        {
+         SubscriptBox["err", "2"]}
+       }], "\[NoBreak]", ")"}]}], "}"}]}]}], "\[IndentingNewLine]", 
+ RowBox[{"(", 
+  RowBox[{
+   RowBox[{
+   "mov", " ", "is", " ", "the", " ", "number", " ", "of", " ", "motor", " ", 
+    "steps"}], ",", " ", 
+   RowBox[{
+   "err", " ", "is", " ", "the", " ", "error", " ", "from", " ", "baseline", 
+    " ", "on", " ", "the", " ", "camera"}]}], ")"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Then", " ", "I", " ", "can", " ", "find", " ", 
+    StyleBox["M",
+     FontWeight->"Bold"], " ", "by", " ", "moving", " ", "a", " ", "camera", 
+    " ", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       StyleBox["M",
+        FontWeight->"Bold"], 
+       RowBox[{"(", "\[NoBreak]", GridBox[{
+          {"n"},
+          {"0"}
+         }], "\[NoBreak]", ")"}]}], "=", 
+      RowBox[{
+       RowBox[{"(", "\[NoBreak]", GridBox[{
+          {
+           RowBox[{"n", "*", "a"}]},
+          {
+           RowBox[{"n", "*", "b"}]}
+         }], "\[NoBreak]", ")"}], "=", 
+       RowBox[{"(", "\[NoBreak]", GridBox[{
+          {
+           SubscriptBox["err", "1"]},
+          {
+           SubscriptBox["err", "2"]}
+         }], "\[NoBreak]", ")"}]}]}], "}"}], " ", "then", " ", "solve", " ", 
+    "for", " ", "a"}], "&"}], "b"}], "\[IndentingNewLine]", 
+ RowBox[{"Then", ",", " ", 
+  RowBox[{"use", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     SuperscriptBox[
+      StyleBox["M",
+       FontWeight->"Bold"], 
+      RowBox[{"-", "1"}]], "=", 
+     RowBox[{"(", "\[NoBreak]", GridBox[{
+        {"d", 
+         RowBox[{"-", "b"}]},
+        {
+         RowBox[{"-", "c"}], "a"}
+       }], "\[NoBreak]", ")"}]}], "}"}], " ", "to", " ", "make", "    ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"(", "\[NoBreak]", GridBox[{
+        {
+         SubscriptBox["mov", "1"]},
+        {
+         SubscriptBox["mov", "2"]}
+       }], "\[NoBreak]", ")"}], "=", 
+     RowBox[{
+      SuperscriptBox[
+       StyleBox["M",
+        FontWeight->"Bold"], 
+       RowBox[{"-", "1"}]], 
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          SubscriptBox["PID", "1"]},
+         {
+          SubscriptBox["PID", "2"]}
+        }], "\[NoBreak]", ")"}]}]}], "}"}], " "}]}]}], "Text",
+ CellChangeTimes->{{3.9265483846431046`*^9, 3.926548396433071*^9}, {
+  3.926548474392991*^9, 3.9265485918078966`*^9}, {3.926548631306299*^9, 
+  3.9265487263182287`*^9}, {3.9265487773292365`*^9, 3.9265489368404865`*^9}, {
+  3.926548972713972*^9, 
+  3.926549060141028*^9}},ExpressionUUID->"f3068dbf-003d-4d93-bf2c-\
+56f5ed72547b"]
+},
+WindowSize->{1152, 579.6},
+WindowMargins->{{
+  Automatic, -5.399999999999864}, {-5.399999999999977, Automatic}},
+FrontEndVersion->"13.3 for Microsoft Windows (64-bit) (June 3, 2023)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"e5ed8c3d-5db2-49be-8081-95d1cef56640"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 3166, 103, 153, "Text",ExpressionUUID->"f3068dbf-003d-4d93-bf2c-56f5ed72547b"]
+}
+]
+*)
+

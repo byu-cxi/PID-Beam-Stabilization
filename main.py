@@ -51,14 +51,14 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
                 ( "FrameProcessType", c_int ),
                 ( "FilterAcceptForFile", c_int ) ]
 
-FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height*width//4)))
+FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height//binning)*(width//binning)))
 
 def FrameHook(info, data):
     # To whoever is trying to improve this code:
     # I'm sorry
     # (Unless that person is me - if so, you deserve this)
-    img = np.flip(np.array(data.contents).reshape((width//2, height//2)), 0)
-    img[img<100] = 0
+    img = np.flip(np.array(data.contents).reshape((width//binning, height//binning)), 0)
+    img[img < (np.max(np.max(img))/10)] = 0 # set everything less than 10% max to 0
     center_mass = center_of_mass(img)
     global baseline_center
     global baseline_not_set
@@ -128,6 +128,9 @@ if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
 if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
     raise Exception("Camera not in working set")
 
+if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+    raise Exception("Resolution setting didn't work:", res_response)
+
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
     raise Exception("Frame hooker start failed")
@@ -173,11 +176,11 @@ with Newport.Picomotor8742() as nwpt:
         x_step_num = int(x_pixel_shift * x_pixel_to_motorstep_conversion)
 
         # Note: I guess in the docs, "device" refers to the controller board, not the motor
-        if abs(y_step_num) > 5:
+        if abs(y_step_num) > 1:
             nwpt.move_by(1, y_step_num) # 1 for Y, 2 for X
             while (nwpt.is_moving(axis=1)): # yes I could use the nwpt.wait_move() function
                 time.sleep(.001)            # but in the pylablib source code it does exactly this
-        if abs(x_step_num) > 5:             # sequence, except sleeps for .01 instead of .001 seconds
+        if abs(x_step_num) > 1:             # sequence, except sleeps for .01 instead of .001 seconds
             nwpt.move_by(2, x_step_num)     # and the higher precision can't hurt
             while (nwpt.is_moving(axis=2)):
                 time.sleep(.001)
