@@ -1,6 +1,5 @@
 # file for functions that are important,
     # but not the main focus of the program
-import numpy as np
 
 def TupleSubtract(tup1, tup2):
     return tuple(map(lambda i,j : i-j, tup1, tup2))
@@ -8,10 +7,70 @@ def TupleSubtract(tup1, tup2):
 def TupleAdd(tup1, tup2):
     return tuple(map(lambda i,j : i+j, tup1, tup2))
 
+
+import numpy as np
+
+# modifies image to make it easy to see where the image center (or any other point) is
 def AddCrossHairs(img, point):
     val = int(np.max(np.max(img)) / 4)
     img[int(point[0]),:] = val
     img[:,int(point[1])] = val
+
+
+# This takes the error tracking information, and uses PI algorithm to determine where the beam should be shifted to
+def PID(axis, error_tracker, n):
+    final_elements = np.array(error_tracker).transpose()[axis, -n:] # array of n elements
+
+    # look up Ziegler-Nichols method if these need to be changed
+    P = .65         # adjust this until you see oscillations after move, then divide by 2
+    I = .3 / n      # adjust this to reduce oscillations, and change n to somewhat large value
+    D = 0           # Not going to include D because papers said that it wasn't necessary. Can be added in if you want
+                                        # Just be careful of timing: changing the frame rate will require changing D
+
+    P_contribution = - P * final_elements[n-1]
+    I_contribution = - I * np.sum(final_elements)
+    D_contribution = - D * (final_elements[n-1] - final_elements[n-2])
+
+    return P_contribution + I_contribution + D_contribution
+
+
+
+
+# print info about image collection efficiency
+# It is possible that two images can be collected before the loop finishes, meaning one image center is overwritten
+    # (Especially when the motor is moving large distances, or the frame rate is high)
+# This function tells how often that happens
+# images_received is the number of times the callback function got an image
+# images_processed is the number of times the main loop was able to respond to one of those images
+def PrintStats(images_received, images_processed):
+    print("Total images received -", images_received_counter)
+    print("Total images processed -", images_processed_counter)
+    print("Responded to", int(100*images_processed_counter/images_received_counter), "% of collected images")
+
+
+import contextlib
+import ctypes
+import ctypes.wintypes
+winmm = ctypes.windll.winmm
+
+# used in SleepModifier context manager
+class TIMECAPS(ctypes.Structure):
+    _fields_ = (('wPeriodMin', ctypes.wintypes.UINT),
+                ('wPeriodMax', ctypes.wintypes.UINT))
+
+# This manager reduces the time that windows sleeps from around 15 ms to min_sleep seconds
+# This allows us to waste less time sleeping in the loop, at the cost of higher computer power usage
+@contextlib.contextmanager
+def SleepModifier(min_sleep):
+    caps = TIMECAPS()
+    winmm.timeGetDevCaps(ctypes.byref(caps), ctypes.sizeof(caps))
+    min_sleep = min(max(min_sleep, caps.wPeriodMin), caps.wPeriodMax)
+    winmm.timeBeginPeriod(min_sleep)
+    yield
+    winmm.timeEndPeriod(min_sleep)
+
+
+
 
 if __name__ == "__main__":
     print("Wrong file")

@@ -1,5 +1,7 @@
 # This code is used to find constants in the vals.py file
 # it moves the motor to find out how many steps of the motor move the beam center by one pixel
+# It requires the vals.py and helper.py files
+    # (Don't worry, it doesn't use the constants from vals.py that it's trying to find)
 
 cam_num = 1
 mot_num = 2 # current setup: 1=Y, 2=X
@@ -63,6 +65,10 @@ def FrameHook(info, data):
     img = np.flip(np.array(data.contents).reshape((width//binning, height//binning)), 0)
     img[img < (np.max(np.max(img))/1.5)] = 0 # set everything less than (1/1.5)*max to 0
     center_mass = center_of_mass(img)
+    if np.isnan(center_mass).any(): # if there isn't any findable center of mass, stop the program
+        print("No center of mass found: is the beam on the camera?")
+        import os
+        os._exit(1)
     global baseline_center
     global baseline_not_set
     global save_img
