@@ -25,7 +25,7 @@ I am using miniforge3, windows 11, etc.
 	- Download from  https://sourceforge.net/projects/libusb/files/libusb-1.0/libusb-1.0.20/libusb-1.0.20.7z/download
 	- Extract it, and go to /MS32/dll/
 	- There should only be one .dll file there.
-	- Copy that file to <conda_env_folder>/Library/Lib/
+	- Copy that file to <conda_env_folder>/Library/Bin/
 		- My environment was stored at C:\Users\<username>\miniforge3\envs\temp1\
 		- Running "where python" will give you a few locations: look for the one with the environment name in it
 	- If you don't do this, you'll get errors saying "usb.core.NoBackendError: No backend available"

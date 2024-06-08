@@ -1,5 +1,12 @@
 # This is the main file that will be run to stabilize the beam
 # You will need 2 other files for this code: vals.py and helper.property
+    # Make sure you use the auto-calibration code to enter the correct values into vals.py
+# In addition, you will need 2 .dll files for the Mightex Camera: SSClassic_USBCamera_SDK.dll and SSUsbLib.dll
+# I arranged my files like this (dll_folder is in the same directory as this code)
+    # dll_folder/
+    # └── Mightex/
+    #     ├── SSClassic_USBCamera_SDK.dll
+    #     └── SSUsbLib.dll
 
 
 import time
