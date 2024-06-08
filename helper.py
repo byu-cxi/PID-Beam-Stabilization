@@ -43,9 +43,9 @@ def PID(axis, error_tracker, n):
 # images_received is the number of times the callback function got an image
 # images_processed is the number of times the main loop was able to respond to one of those images
 def PrintStats(images_received, images_processed):
-    print("Total images received -", images_received_counter)
-    print("Total images processed -", images_processed_counter)
-    print("Responded to", int(100*images_processed_counter/images_received_counter), "% of collected images")
+    print("Total images received -", images_received)
+    print("Total images processed -", images_processed)
+    print("Responded to", int(100*images_processed/images_received), "% of collected images")
 
 
 import contextlib

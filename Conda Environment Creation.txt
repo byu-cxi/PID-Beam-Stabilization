@@ -1,0 +1,39 @@
+This file will go through the tricky process of creating a conda environment for this code
+I am using miniforge3, windows 11, etc.
+
+- Open new terminal that can activate conda
+- We are trying to install 32-bit packages, so if it is running on a 64-bit machine (most these days), run
+>>> set CONDA_FORCE_32BIT=1
+- Everytime you reopen the terminal to change packages, make sure this line is run before doing anything
+
+- Create conda environment with python 3.8, and activate it (I'm naming mine temp1)
+>>> conda create --name temp1 python=3.8
+[ERROR 1]
+>>> conda activate temp1
+
+- Install packages using conda or mamba
+>>> conda install scipy numpy pywin32-ctypes matplotlib
+
+- Check to make sure pip is installed in your conda environment
+>>> pip --version
+- Make sure this is installed in your conda environment
+
+- Need to install pylablib using pip instead of conda
+>>> pip install pylablib
+
+- Now for the trickiest part:
+	- Download from  https://sourceforge.net/projects/libusb/files/libusb-1.0/libusb-1.0.20/libusb-1.0.20.7z/download
+	- Extract it, and go to /MS32/dll/
+	- There should only be one .dll file there.
+	- Copy that file to <conda_env_folder>/Library/Lib/
+		- My environment was stored at C:\Users\<username>\miniforge3\envs\temp1\
+		- Running "where python" will give you a few locations: look for the one with the environment name in it
+	- If you don't do this, you'll get errors saying "usb.core.NoBackendError: No backend available"
+
+That should be everything
+
+
+ERROR 1] Getting an error talking about exclusion by strict priority?
+	 Edit the .condarc file to set channel_priority from strict->flexible:
+ERROR 2] usb.core.NoBackendError: No backend available
+	 You skipped the last steps
