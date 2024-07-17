@@ -13,11 +13,23 @@ dll_path = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/dl
 bin_choice = 0 # ranges from 0 (no binning) to 2 (bin by 4)
 binning = 2**bin_choice
 
-# Get these 2 values from auto-calibration.py code
+# Get these values from auto-calibration.py code
 # Assumption made that movement of the X motor doen't change the Y location (and vise versa)
 # Intuitively (Picomotor steps / pixel change)
-y_pixel_to_motorstep_conversion = -23 # -2.9
-x_pixel_to_motorstep_conversion = -20 #1.8
+# 1 is upstream, 2 is downstream
+y_cam1_pix_to_motor1_conversion = 1
+y_cam1_pix_to_motor2_conversion = 1
+y_cam2_pix_to_motor1_conversion = 1
+y_cam2_pix_to_motor2_conversion = 1
+
+x_cam1_pix_to_motor1_conversion = 1
+x_cam1_pix_to_motor2_conversion = 1
+x_cam2_pix_to_motor1_conversion = 1
+x_cam2_pix_to_motor2_conversion = 1
+
+Mx = [[1,1],[1,1]]
+My = [[1,1],[1,1]]
+
 
 if __name__ == "__main__":
     print("Wrong file")

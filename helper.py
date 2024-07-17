@@ -15,6 +15,7 @@ def AddCrossHairs(img, point):
     val = int(np.max(np.max(img)) / 4)
     img[int(point[0]),:] = val
     img[:,int(point[1])] = val
+    return img
 
 
 # This takes the error tracking information, and uses PI algorithm to determine where the beam should be shifted to
@@ -42,10 +43,15 @@ def PID(axis, error_tracker, n):
 # This function tells how often that happens
 # images_received is the number of times the callback function got an image
 # images_processed is the number of times the main loop was able to respond to one of those images
-def PrintStats(images_received, images_processed):
+def PrintStats(images_received, images_processed, images_failed, images_dark, time_elapsed):
     print("Total images received -", images_received)
+    print("Images where beam was blocked -", images_dark)
     print("Total images processed -", images_processed)
-    print("Responded to", int(100*images_processed/images_received), "% of collected images")
+    if (images_received-images_dark != 0):
+        print("Responded to", int(100*images_processed/(images_received-images_dark)), "% of collected (non-dark) images")
+    print("Number of bad images -", images_failed)
+    print("Stabilized beam for", time_elapsed, "seconds")
+    print("On average,", images_processed/time_elapsed, "images processed / second")
 
 
 import contextlib

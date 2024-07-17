@@ -8,6 +8,11 @@
     #     ├── SSClassic_USBCamera_SDK.dll
     #     └── SSUsbLib.dll
 
+# When moving to new system, what to do to get it set up:
+    # Change thresholding in FrameHook to properly get rid of background noise
+    # Update functions in CameraContext
+    # Run auto-calibration to get vals.py variables updated
+    # Determine whether the PID variables need to be updated?
 
 import time
 import ctypes
@@ -17,22 +22,29 @@ from scipy.ndimage import center_of_mass
 from helper import * # helper.py in directory
 from vals import *   # vals.py in directory
 from pylablib.devices import Newport
+from matplotlib import pyplot as plt
 user32 = ctypes.windll.user32
 
 
 cam_dll = ctypes.cdll.LoadLibrary(dll_path)
-cam_num = 1 # one-indexed, references camera from the initDevice function
 c_int = ctypes.c_int
 
-baseline_center = (0,0)     # will be set on the first image. This is the location the program tries to move toward
-baseline_not_set = True 
-curr_img_center = (0,0)     # this is the current location of the center-of-mass of the most recent image
-                                # It is used to pass data from the callback function into the main code
-n = 20                      # int > 1 - used to control how far back the Integral can see in the PID controller
-images_received_counter = 0   # These 3 are for program tracking only, not for program functionality
-images_processed_counter = 0
-error_tracker = [[0.,0.]]*n
+baseline_center_1 = (0,0)     # will be set on the first image. This is the location the program tries to move toward
+baseline_center_2 = (0,0)
+baseline_not_set_1 = True
+baseline_not_set_2 = True
+curr_img_center_1 = (0,0)   # this is the current location of the center-of-mass of the most recent image
+curr_img_center_2 = (0,0)   # It is used to pass data from the callback function into the main code
 
+n = 20                      # int > 1 - used to control how far back the Integral can see in the PID controller
+
+images_received_counter = 0   # These are for program tracking only, not for program functionality
+images_processed_counter = 0
+images_failed_counter = 0  # number of frames that admitted that they were bad
+images_dark_counter = 0
+
+error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
+error_tracker_2 = [[0.,0.]]*n
 
     
 
@@ -63,32 +75,79 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
                 ( "FrameProcessType", c_int ),
                 ( "FilterAcceptForFile", c_int ) ]
 
-FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*(height//binning)*(width//binning)))
+# This has 3x the size of monochrome, but I only need the red array. Need to get all three though or nothing comes through
+FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*3*(height//binning)*(width//binning)))
 
 # This is the callback function for the camera (look up callback functions if you don't know what that means)
 # It takes the data properties as info (in the shape of attributeMirror), and the image data as arguments
 # It finds the center of mass of the image, and updates global variables with it
     # (Note: this is called from a different thread each time, so returning normally isn't possible as far as I know)
 def FrameHook(info, data):
-    img = np.flip(np.array(data.contents).reshape((width//binning, height//binning)), 0)
-    img[img < (np.max(np.max(img))/10)] = 0 # set everything less than 10% max to 0
-    center_mass = center_of_mass(img)
-    if np.isnan(center_mass).any():
-        print("No center of mass found: is the beam on the camera?")
-        import os
-        os._exit(1)
-        
-    global baseline_center
-    global baseline_not_set
-    if baseline_not_set:
-        baseline_center = center_mass
-        baseline_not_set = False
-    
-    global images_received_counter
-    global curr_img_center
-    images_received_counter += 1
-    curr_img_center = center_mass
+        # Variables that should be different depending on what camera it's coming from
+            # baseline_center ,/
+            # curr_img_center
+            # baseline_not_set ,/
+    cam_num = info.contents.CameraID
+    print("camID is", cam_num)
 
+    global images_received_counter
+    images_received_counter += 1
+    
+    if info.contents.IsFrameBad:
+        global images_failed_counter
+        images_failed_counter += 1
+        print("Received bad image")
+        return # This means the frame failed somehow 
+
+    img = np.flip(np.array(data.contents)[:,:,0], 0)
+    #del data # delete data to free space
+    max = np.max(np.max(img))
+    img[img < (max*.5)] = 0 # set everything less than 50% max to 0
+    center_mass = center_of_mass(img)
+
+    if np.isnan(center_mass).any():
+        print("No center of mass found: is something wrong with the camera?")
+        if False: # debugging code - saves image to file
+            from PIL import Image
+            im = Image.fromarray(img)
+            im.save("image that failed to find center.jpeg")
+            print("Saved bad image to image file in home directory")
+        # import os
+        # os._exit(1) # closes down all threads, instead of only this one
+        return
+
+    rad = 25 # radius to look around center of mass at in pixels
+             # (For very small beams, may need to reduce this, at cost of greater chance of error)
+    beam_region = img[int(center_mass[0])-rad:int(center_mass[0])+rad, int(center_mass[1])-rad:int(center_mass[1])+rad]
+    if False:
+        plt.imshow(AddCrossHairs(img, (rad,rad)))
+        plt.show()
+    bitmap = np.where(beam_region > (max*.5), 1, 0) # 1 for pixels over 50% max, 0 for pixels less than that
+    if np.average(np.average(bitmap)) < .8: # if less than 80% the pixels in region are over 25% max, no beam on image
+        print("dark frame")
+        global images_dark_counter
+        images_dark_counter += 1
+        return # This means that the center of mass isn't surrounded by bright pixels
+                # which probably means the shutter is on. If so, shouldn't do anything for now
+    
+        
+    global baseline_center_1
+    global baseline_center_2
+    global baseline_not_set_1
+    global baseline_not_set_2
+    if baseline_not_set_1 and (cam_num == 1):
+        baseline_center_1 = center_mass
+        baseline_not_set_1 = False
+    if baseline_not_set_2 and (cam_num == 2):
+        baseline_center_2 = center_mass
+        baseline_not_set_2 = False
+    
+    if (cam_num == 1):
+        global curr_img_center_1
+        curr_img_center_1 = center_mass
+    if (cam_num == 2):
+        global curr_img_center_2
+        curr_img_center_2 = center_mass
 
 # ---------- Handle Ctrl-C events ----------
 
@@ -126,106 +185,166 @@ if not ctypes.windll.kernel32.SetConsoleCtrlHandler(_ctrl_c_handler):
 # Go to SDK/Documents, and there's a pdf with information on all of this
     # It's named:   Mightex Super Speed USB Camera (SM-Series) SDK Manual
 
-if(cam_dll.SSClassicUSB_InitDevice() == 0):
-    raise Exception("No cameras found")
+import contextlib
 
-if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
-    raise Exception("Camera didn't connect (might be invalid device number)")
-
-if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
-    raise Exception("Camera not in working set")
-
-if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1):
-    raise Exception("Frequency setting failed")
-
-if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
-    raise Exception("Resolution setting didn't work:", res_response)
-
-cbhook = FUNC_PROTOTYPE(FrameHook)
-if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
-    raise Exception("Frame hooker start failed")
-
-if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
-    raise Exception("Frame grabbing failed")
+@contextlib.contextmanager
+def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to allow cam_num not only be 1 or 2
+    num_device_connected = cam_dll.SSClassicUSB_InitDevice()
+    if (num_device_connected == 0): # only done once
+        raise Exception("No cameras found")
 
 
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
+            raise Exception("Camera didn't connect (might be invalid device number) -- cam_num=" + str(cam_num))
 
-# ---------- run loop! ----------
+    if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
+        raise Exception("Camera not in working set")
 
-# Starts the context managers for the motors and the sleep modifier
-# Then runs loop checking to see if the camera has sent an image back yet
-    # If so, it moves the motors (if the move is big enough)
+    global FUNC_PROTOTYPE
+    cbhook = FUNC_PROTOTYPE(FrameHook)
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1): # can be 1, 24, 48, 96 (frame rate)
+            raise Exception("Frequency setting failed -- cam_num=" + str(cam_num))
+        # if (cam_dll.SSClassicUSB_SetCameraWorkMode(cam_num, 1) == -1): # 1 is trigger, 0 is normal
+        #     raise Exception("Could not set work mode")
+        if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+            raise Exception("Resolution setting didn't work:", res_response)
+        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
+            raise Exception("Exposure time setting failed")
 
-# These three functions are neccessary to get data out of the callback function
-msg = MSG()
-GM = user32.GetMessageA
-TM = user32.TranslateMessage
-DM = user32.DispatchMessageA
+    if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
+        raise Exception("Frame hooker start failed")
 
-i = 0
-time_steps = []
-print("Starting stabilization loop now (Ctrl-C to stop)")
-continue_loop = True # will be set to false on ctrl-c
-sleep_time = .005
-with Newport.Picomotor8742() as nwpt, SleepModifier(sleep_time):
-    while continue_loop:
-        i += 1
-        # These three functions are neccessary to get data out of the callback function
-        GM(ctypes.pointer(msg), 0, 0, 0)
-        TM(ctypes.pointer(msg))
-        DM(ctypes.pointer(msg))
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
+            raise Exception("Frame grabbing failed -- cam_num=" + str(cam_num))
 
-        if curr_img_center == (0,0): # (0,0) means that a new image hasn't been processed yet
-            time.sleep(sleep_time)
-            continue
-        elif (np.isnan(curr_img_center[0]) or np.isnan(curr_img_center[1])): # center of mass gives NaN when given array of 0's
-            raise Exception("No signal detected: is the beam on the camera?")
+    yield # This is where the loop is run: when the loop is ended, the rest of the function is run
 
-        y_err, x_err = TupleSubtract(curr_img_center, baseline_center) # caluclate error in pixels
-        curr_img_center = (0,0)
-        images_processed_counter += 1
-        error_tracker.append([y_err, x_err])
+    for cam_num in range(1, num_device_connected+1):
+        cam_dll.SSClassicUSB_StopFrameGrab(cam_num)
+    cam_dll.SSClassicUSB_StopCameraEngine()
+    cam_dll.SSClassicUSB_UnInitDevice()
 
-        y_pixel_shift = PID(0, error_tracker, n) # 0 for Y, 1 for X
-        x_pixel_shift = PID(1, error_tracker, n)
 
-        y_step_num = int(y_pixel_shift * y_pixel_to_motorstep_conversion) # calculate how many motor steps will
-        x_step_num = int(x_pixel_shift * x_pixel_to_motorstep_conversion) # move the beam by that amount of pixels
 
-        # Note: in the docs, "device" refers to the controller board, not the motor
-        min_move = 2
-        if abs(y_step_num) >= min_move:
-            nwpt.move_by(1, y_step_num) # 1 for Y, 2 for X
-            while (nwpt.is_moving(axis=1)):     # yes I could use the nwpt.wait_move() function
-                time.sleep(sleep_time)              # but in the pylablib source code it does exactly this 
-        if abs(x_step_num) >= min_move:             # sequence, except sleeps for .01 instead of .001 seconds
-            nwpt.move_by(2, x_step_num)             # and the higher precision can't hurt
-            while (nwpt.is_moving(axis=2)):
+
+if __name__ == "__main__":
+    # ---------- run loop! ----------
+
+    # Starts the context managers for the motors and the sleep modifier
+    # Then runs loop checking to see if the camera has sent an image back yet
+        # If so, it moves the motors (if the move is big enough)
+
+    # These three functions are neccessary to get data out of the callback function
+    msg = MSG()
+    GM = user32.GetMessageA
+    TM = user32.TranslateMessage
+    DM = user32.DispatchMessageA
+
+    i = 0
+    time_steps_1 = []
+    time_steps_2 = []
+    print("Starting stabilization loop now (Ctrl-C to stop)")
+    continue_loop = True # will be set to false on ctrl-c
+    sleep_time = .010 # can shrink this down to .001 seconds, but .005 should be plenty: uses more power when set to smaller numbers
+    with SleepModifier(sleep_time), CameraContext(cam_dll):#, Newport.Picomotor8742() as nwpt: # TODO replace
+        t_start = time.time()
+        while continue_loop:
+            i += 1
+            # These three functions are neccessary to get data out of the callback function
+            GM(ctypes.pointer(msg), 0, 0, 0)
+            TM(ctypes.pointer(msg))
+            DM(ctypes.pointer(msg))
+
+            if (curr_img_center_1 == (0,0)) and (curr_img_center_2 == (0,0)): # (0,0) means that a new image hasn't been processed yet
                 time.sleep(sleep_time)
-
-        time_steps.append(time.time())
-
-
-
-# ----------------- Shut down camera ---------------------
-
-cam_dll.SSClassicUSB_StopFrameGrab(cam_num)
-cam_dll.SSClassicUSB_StopCameraEngine()
-cam_dll.SSClassicUSB_UnInitDevice()
+                continue
+            elif (np.isnan(curr_img_center_1[0]) or np.isnan(curr_img_center_1[1]) 
+                or np.isnan(curr_img_center_2[0]) or np.isnan(curr_img_center_2[1])): # center of mass gives NaN when given array of 0's
+                raise Exception("No signal detected: is the beam on the camera?")
 
 
-PrintStats(images_received_counter, images_processed_counter)
+            if (curr_img_center_1 != (0,0)):        # image taken from camera 1
+                y_err, x_err = TupleSubtract(curr_img_center_1, baseline_center_1) # caluclate error in pixels
+                curr_img_center_1 = (0,0)
+                images_processed_counter += 1
+                error_tracker_1.append([y_err, x_err])
+                time_steps_1.append(time.time())
 
-# plot error over time
-if True:
-    from matplotlib import pyplot as plt
-    from math import sqrt
-    x_vals, y_vals = np.array(error_tracker)[n:].transpose()
-    tot_err = [sqrt(x**2 + y**2) for x,y in error_tracker[n:]]
-    plt.plot(time_steps, y_vals, '-.b')
-    plt.plot(time_steps, x_vals, '-.r')
-    plt.plot(time_steps, tot_err, '-*', color="black")
+                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X
+                x_pixel_shift_1 = PID(1, error_tracker_1, n) # tells how many pixels to shift by
 
-    plt.title("Error over time (x is blue, y is red, total is black)")
-    plt.show()
+                # calculate how many motor steps will move the beam by that amount of pixels
+                y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_conversion) # y move on mirror 1
+                y_step_num2 = int(y_pixel_shift_1 * y_cam1_pix_to_motor2_conversion) # etc.
+                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor1_conversion)
+                x_step_num2 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_conversion)
+
+
+            else:                                   # image taken from camera 2
+                y_err, x_err = TupleSubtract(curr_img_center_2, baseline_center_2) # caluclate error in pixels
+                curr_img_center_2 = (0,0)
+                images_processed_counter += 1
+                error_tracker_2.append([y_err, x_err])
+                time_steps_2.append(time.time())
+
+                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X
+                x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
+
+                # calculate how many motor steps will move the beam by that amount of pixels
+                y_step_num1 = int(y_pixel_shift_2 * y_cam2_pix_to_motor1_conversion) # y move on mirror 1
+                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor2_conversion) # etc.
+                x_step_num1 = int(x_pixel_shift_2 * x_cam2_pix_to_motor1_conversion)
+                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor2_conversion)
+
+
+            # Note: in the docs, "device" refers to the controller board, not the motor
+            # 1 is upstream, 2 is downstream
+            min_move = 2
+
+            y1_axis = 1
+            x1_axis = 2
+            y2_axis = 3
+            x2_axis = 4
+
+            """if abs(y_step_num1) >= min_move:
+                nwpt.move_by(y1_axis, y_step_num1) # 1 for Y, 2 for X
+                while (nwpt.is_moving(axis=y1_axis)):     # yes I could use the nwpt.wait_move() function
+                    time.sleep(sleep_time)              # but in the pylablib source code it does exactly this 
+            if abs(x_step_num1) >= min_move:             # sequence, except sleeps for .01 instead of .001 seconds
+                nwpt.move_by(x1_axis, x_step_num1)             # and the higher precision can't hurt
+                while (nwpt.is_moving(axis=x1_axis)):
+                    time.sleep(sleep_time)
+            if abs(y_step_num2) >= min_move:
+                nwpt.move_by(y2_axis, y_step_num2)
+                while (nwpt.is_moving(axis=y2_axis)):
+                    time.sleep(sleep_time)
+            if abs(x_step_num2) >= min_move:
+                nwpt.move_by(x2_axis, x_step_num2)
+                while (nwpt.is_moving(axis=x2_axis)):
+                    time.sleep(sleep_time)"""
+        
+        time_elapsed = time.time() - t_start
+
+
+    # ----------------- Shut down camera ---------------------
+
+
+    PrintStats(images_received_counter, images_processed_counter, images_failed_counter, images_dark_counter, time_elapsed)
+
+    # plot error over time
+    if True:
+        from math import sqrt
+        error_tracker = error_tracker_2 # Looking at camera 1
+        time_steps = time_steps_2
+        x_vals, y_vals = np.array(error_tracker)[n:].transpose()
+        tot_err = [sqrt(x**2 + y**2) for x,y in error_tracker[n:]]
+        plt.plot(time_steps, y_vals, '-.b')
+        plt.plot(time_steps, x_vals, '-.r')
+        plt.plot(time_steps, tot_err, '-*', color="black")
+
+        plt.title("cam1 -- Error over time (x is blue, y is red, total is black)")
+        plt.show()
 
