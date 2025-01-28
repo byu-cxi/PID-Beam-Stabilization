@@ -2,9 +2,11 @@
 # it moves the motor to find out how many steps of the motor move the beam center by one pixel
 # It requires the vals.py and helper.py files
     # (Don't worry, it doesn't use the constants from vals.py that it's trying to find)
-
-cam_num = 1
-mot_num = 2 # current setup: 1=Y, 2=X
+# Note: This does not move the motors back to their starting positions.
+    # It is a good idea to move, then move again with negative steps to reset the motor location
+    # This will also allow you to get 2 estimates for the calibration number.
+cam_num = 1 # current setup: 1=upstream, 2=downstream #TODO change
+mot_num = 2 # current setup: 1=Y1, 2=X1
 num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
@@ -166,7 +168,9 @@ cam_dll.SSClassicUSB_UnInitDevice()
 average_x_y_final = np.array(mass_center_tracker2).mean(axis=0)
 print("average final =", average_x_y_final)
 
-difference = average_x_y_final - average_x_y_initial
+difference = average_x_y_final - average_x_y_initiali
+print("Cam_num is", cam_num)
+print("Mot_num is", mot_num)
 print("If X-axis shift, the calibration number is", (num_steps/difference[1]))
 print("If Y-axis shift, the calibration number is", (num_steps/difference[0]))
 print("Note: This number will likely be in the thousands if the motor did not move in that axis")
