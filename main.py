@@ -36,7 +36,7 @@ baseline_not_set_2 = True
 curr_img_center_1 = (0,0)   # this is the current location of the center-of-mass of the most recent image
 curr_img_center_2 = (0,0)   # It is used to pass data from the callback function into the main code
 
-n = 20                      # int > 1 - used to control how far back the Integral can see in the PID controller
+n = 20                      # int > 1 - used to control how many time steps back the Integral can see in the PID controller
 
 images_received_counter = 0   # These are for program tracking only, not for program functionality
 images_processed_counter = 0
@@ -105,7 +105,7 @@ def FrameHook(info, data):
     img[img < (max*.5)] = 0 # set everything less than 50% max to 0
     center_mass = center_of_mass(img)
 
-    if np.isnan(center_mass).any():
+    if np.isnan(center_mass).any(): # If so, then the entire image is below 50% max (aka it's all zeros, or something else weird)
         print("No center of mass found: is something wrong with the camera?")
         if False: # debugging code - saves image to file
             from PIL import Image
@@ -123,7 +123,7 @@ def FrameHook(info, data):
         plt.imshow(AddCrossHairs(img, (rad,rad)))
         plt.show()
     bitmap = np.where(beam_region > (max*.5), 1, 0) # 1 for pixels over 50% max, 0 for pixels less than that
-    if np.average(np.average(bitmap)) < .8: # if less than 80% the pixels in region are over 25% max, no beam on image
+    if np.average(np.average(bitmap)) < .8: # if less than 80% the pixels in region are over 50% max, no beam on image
         print("dark frame")
         global images_dark_counter
         images_dark_counter += 1
@@ -193,7 +193,6 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
     if (num_device_connected == 0): # only done once
         raise Exception("No cameras found")
 
-
     for cam_num in range(1, num_device_connected+1):
         if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
             raise Exception("Camera didn't connect (might be invalid device number) -- cam_num=" + str(cam_num))
@@ -208,7 +207,8 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
             raise Exception("Frequency setting failed -- cam_num=" + str(cam_num))
         # if (cam_dll.SSClassicUSB_SetCameraWorkMode(cam_num, 1) == -1): # 1 is trigger, 0 is normal
         #     raise Exception("Could not set work mode")
-        if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+        res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
+        if (res_response != 1):
             raise Exception("Resolution setting didn't work:", res_response)
         if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
             raise Exception("Exposure time setting failed")
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     time_steps_2 = []
     print("Starting stabilization loop now (Ctrl-C to stop)")
     continue_loop = True # will be set to false on ctrl-c
-    sleep_time = .010 # can shrink this down to .001 seconds, but .005 should be plenty: uses more power when set to smaller numbers
+    sleep_time = .010 # can shrink this down to .001 seconds, but this should be plenty: The smaller this is, the more energy the computer uses
     with SleepModifier(sleep_time), CameraContext(cam_dll):#, Newport.Picomotor8742() as nwpt: # TODO replace
         t_start = time.time()
         while continue_loop:
@@ -337,9 +337,9 @@ if __name__ == "__main__":
     # plot error over time
     if True:
         from math import sqrt
-        error_tracker = error_tracker_2 # Looking at camera 1
-        time_steps = time_steps_2
-        x_vals, y_vals = np.array(error_tracker)[n:].transpose()
+        error_tracker = error_tracker_1 # Looking at camera 1
+        time_steps = time_steps_1
+        x_vals, y_vals = np.array(error_tracker)[n:].transpose() # TODO save this data so I can look at it later
         tot_err = [sqrt(x**2 + y**2) for x,y in error_tracker[n:]]
         plt.plot(time_steps, y_vals, '-.b')
         plt.plot(time_steps, x_vals, '-.r')

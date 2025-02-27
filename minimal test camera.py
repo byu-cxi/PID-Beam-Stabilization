@@ -15,7 +15,7 @@ c_int = ctypes.c_int
 height = 2560
 width = 1920
 metadata_size = 128
-bin_choice = 1
+bin_choice = 0
 bin = 2**bin_choice
 img_size = metadata_size + (height*width)
 
@@ -49,15 +49,17 @@ FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.
 
 import numpy as np
 from scipy.ndimage import center_of_mass
-#import threading
+import threading
 first = True
 img_caught = False
 num_imgs_tot = 0
 testing = []
 def FrameHook(info, data):
+    print("shape is : ", str(np.array(data.contents).shape))
     x = center_of_mass(np.array(data.contents))
-    #t = threading.active_count()
+    t = threading.active_count()
     print("center mass at", x, "(Num threads:", t, ")")
+    #print("shape is ", str(np.array(data.contents).shape))
     #time.sleep(1)
     global first
     global num_imgs_tot
@@ -66,9 +68,10 @@ def FrameHook(info, data):
     img_caught = True
     if first:
         first = False
-        """from matplotlib import pyplot as plt
-        plt.imshow(data.contents)
-        plt.show()"""
+        from matplotlib import pyplot as plt
+        img = np.flip(np.array(data.contents), 0)
+        plt.imshow(img)
+        plt.show()
 
 
 # ---------- Start camera running ----------
@@ -85,7 +88,8 @@ def CameraContext(cam_num, cam_dll):
         raise Exception("Camera not in working set")
     if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1):
         raise Exception("Frequency setting failed")
-    if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+    res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
+    if (res_response != 1):
         raise Exception("Resolution setting didn't work:", res_response)
     if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
         raise Exception("Exposure time setting failed")
@@ -108,14 +112,12 @@ import time
 
 # ---------- run loop! ----------
 def main():
-    
-
     msg = MSG()
     GM = user32.GetMessageA
     TM = user32.TranslateMessage
     DM = user32.DispatchMessageA
     imgs_caught_counter = 0
-    time_delay = 2
+    time_delay = 1
     with CameraContext(cam_num, cam_dll):
         t = time.time() + time_delay
         while time.time() < t:
@@ -141,10 +143,9 @@ def main():
 
 
 
-from line_profiler import LineProfiler
+#from line_profiler import LineProfiler # LineProfiler helps find where the program is spending its time
 
 if __name__ == "__main__":
-    time.sleep(1)
     main()
     # lp = LineProfiler()
     # lp.add_function(FrameHook)

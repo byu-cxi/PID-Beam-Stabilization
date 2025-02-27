@@ -6,7 +6,7 @@
     # It is a good idea to move, then move again with negative steps to reset the motor location
     # This will also allow you to get 2 estimates for the calibration number.
 cam_num = 1 # current setup: 1=upstream, 2=downstream #TODO change
-mot_num = 2 # current setup: 1=Y1, 2=X1
+mot_num = 1 # current setup: 1=?, 2=?, 3=_, 4=_ #TODO update
 num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
@@ -168,7 +168,7 @@ cam_dll.SSClassicUSB_UnInitDevice()
 average_x_y_final = np.array(mass_center_tracker2).mean(axis=0)
 print("average final =", average_x_y_final)
 
-difference = average_x_y_final - average_x_y_initiali
+difference = average_x_y_final - average_x_y_initial
 print("Cam_num is", cam_num)
 print("Mot_num is", mot_num)
 print("If X-axis shift, the calibration number is", (num_steps/difference[1]))

@@ -65,7 +65,7 @@ class TIMECAPS(ctypes.Structure):
                 ('wPeriodMax', ctypes.wintypes.UINT))
 
 # This manager reduces the time that windows sleeps from around 15 ms to min_sleep seconds
-# This allows us to waste less time sleeping in the loop, at the cost of higher computer power usage
+# This allows us to waste less time sleeping in the loop, at the cost of higher computer power/cpu usage
 @contextlib.contextmanager
 def SleepModifier(min_sleep):
     caps = TIMECAPS()
@@ -79,4 +79,4 @@ def SleepModifier(min_sleep):
 
 
 if __name__ == "__main__":
-    print("Wrong file")
+    print("Wrong file: this file stores functions that are useful in multiple programs")

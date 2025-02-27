@@ -6,11 +6,11 @@ import time
 print("num devices =", Newport.get_usb_devices_number_picomotor())
 with Newport.Picomotor8742() as nwpt:
     #print("available axes =", nwpt.get_all_axes())
-    #mot_axis = 1 # 1=Y, 2=X
+    ax = 1 # 1=X2, 2=Y2
     t = time.time()
-    nwpt.move_by(2, 10)
+    nwpt.move_by(ax, 10)
     #nwpt.move_by(2, -1)
-    while (nwpt.is_moving(axis=2)):
+    while (nwpt.is_moving(axis=ax)):
         time.sleep(.001)
     delt = time.time() - t
     # while (nwpt.is_moving(axis=2)):
