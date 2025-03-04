@@ -1,4 +1,6 @@
-# This is the minimal amount of code to take an image in a Mightex camera using callback functions
+# Are cameras always numbered in the same order? If not, how?
+# Maybe I should use the serial number instead?
+# This file exists to help me answer these questions
 
 import os
 import time
@@ -55,24 +57,22 @@ img_caught = False
 num_imgs_tot = 0
 testing = []
 def FrameHook(info, data):
-    print("shape is : ", str(np.array(data.contents).shape))
     x = center_of_mass(np.array(data.contents))
-    t = threading.active_count()
-    print("center mass at", x, "(Num threads:", t, ")")
     #print("shape is ", str(np.array(data.contents).shape))
-    #time.sleep(1)
     global first
     global num_imgs_tot
     global img_caught
     num_imgs_tot += 1
     img_caught = True
     if first:
-        if (info.contents.CameraID == 1): # The cameraID will always be 1 unless I change cam_num or the main() function
+        if (info.contents.CameraID == 1):
             return
         first = False
         from matplotlib import pyplot as plt
+        from matplotlib.colors import Normalize
         img = np.flip(np.array(data.contents), 0)
-        plt.imshow(img)
+        img = (img / np.max(np.max(img)))*255
+        plt.imshow(img, norm=Normalize(vmin=0,vmax=255,clip=False))
         plt.title("cam_num = " + str(info.contents.CameraID))
         plt.show()
 
@@ -82,32 +82,42 @@ def FrameHook(info, data):
 import contextlib
 
 @contextlib.contextmanager
-def CameraContext(cam_num, cam_dll):
-    if(cam_dll.SSClassicUSB_InitDevice() == 0):
+def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to allow cam_num not only be 1 or 2
+    num_device_connected = cam_dll.SSClassicUSB_InitDevice()
+    if (num_device_connected == 0): # only done once
         raise Exception("No cameras found")
-    if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
-        raise Exception("Camera didn't connect (might be invalid device number)")
+
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
+            raise Exception("Camera didn't connect (might be invalid device number) -- cam_num=" + str(cam_num))
+
     if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
         raise Exception("Camera not in working set")
-    if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1):
-        raise Exception("Frequency setting failed")
-    res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
-    if (res_response != 1):
-        raise Exception("Resolution setting didn't work:", res_response)
-    if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
-        raise Exception("Exposure time setting failed")
 
     global FUNC_PROTOTYPE
     cbhook = FUNC_PROTOTYPE(FrameHook)
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1): # can be 1, 24, 48, 96 (frame rate)
+            raise Exception("Frequency setting failed -- cam_num=" + str(cam_num))
+        # if (cam_dll.SSClassicUSB_SetCameraWorkMode(cam_num, 1) == -1): # 1 is trigger, 0 is normal
+        #     raise Exception("Could not set work mode")
+        res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
+        if (res_response != 1):
+            raise Exception("Resolution setting didn't work:", res_response)
+        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
+            raise Exception("Exposure time setting failed")
 
     if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
         raise Exception("Frame hooker start failed")
-    if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
-        raise Exception("Frame grabbing failed")
+
+    for cam_num in range(1, num_device_connected+1):
+        if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
+            raise Exception("Frame grabbing failed -- cam_num=" + str(cam_num))
 
     yield # This is where the loop is run: when the loop is ended, the rest of the function is run
 
-    cam_dll.SSClassicUSB_StopFrameGrab(cam_num)
+    for cam_num in range(1, num_device_connected+1):
+        cam_dll.SSClassicUSB_StopFrameGrab(cam_num)
     cam_dll.SSClassicUSB_StopCameraEngine()
     cam_dll.SSClassicUSB_UnInitDevice()
 
@@ -121,7 +131,7 @@ def main():
     DM = user32.DispatchMessageA
     imgs_caught_counter = 0
     time_delay = 2
-    with CameraContext(cam_num, cam_dll):
+    with CameraContext(cam_dll):
         t = time.time() + time_delay
         while time.time() < t:
             #print("num threads:", threading.active_count())

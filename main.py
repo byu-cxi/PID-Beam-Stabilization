@@ -97,7 +97,9 @@ def FrameHook(info, data):
         global images_failed_counter
         images_failed_counter += 1
         print("Received bad image")
-        return # This means the frame failed somehow 
+        #plt.imshow(np.flip(np.array(data.contents)[:,:,0], 0))
+        #plt.show()
+        return #This is where I filter out the half-image problem, or other failed images
 
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     #del data # delete data to free space
@@ -192,6 +194,8 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
     num_device_connected = cam_dll.SSClassicUSB_InitDevice()
     if (num_device_connected == 0): # only done once
         raise Exception("No cameras found")
+    if (num_device_connected != 2):
+        raise Exception("Cannot find two cameras! Are both connected?")
 
     for cam_num in range(1, num_device_connected+1):
         if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
@@ -249,7 +253,7 @@ if __name__ == "__main__":
     print("Starting stabilization loop now (Ctrl-C to stop)")
     continue_loop = True # will be set to false on ctrl-c
     sleep_time = .010 # can shrink this down to .001 seconds, but this should be plenty: The smaller this is, the more energy the computer uses
-    with SleepModifier(sleep_time), CameraContext(cam_dll):#, Newport.Picomotor8742() as nwpt: # TODO replace
+    with SleepModifier(sleep_time), CameraContext(cam_dll), Newport.Picomotor8742() as nwpt: # TODO replace
         t_start = time.time()
         while continue_loop:
             i += 1
@@ -309,7 +313,7 @@ if __name__ == "__main__":
             y2_axis = 3
             x2_axis = 4
 
-            """if abs(y_step_num1) >= min_move:
+            if abs(y_step_num1) >= min_move:
                 nwpt.move_by(y1_axis, y_step_num1) # 1 for Y, 2 for X
                 while (nwpt.is_moving(axis=y1_axis)):     # yes I could use the nwpt.wait_move() function
                     time.sleep(sleep_time)              # but in the pylablib source code it does exactly this 
@@ -324,7 +328,7 @@ if __name__ == "__main__":
             if abs(x_step_num2) >= min_move:
                 nwpt.move_by(x2_axis, x_step_num2)
                 while (nwpt.is_moving(axis=x2_axis)):
-                    time.sleep(sleep_time)"""
+                    time.sleep(sleep_time)
         
         time_elapsed = time.time() - t_start
 
