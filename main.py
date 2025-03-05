@@ -78,21 +78,30 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
 # This has 3x the size of monochrome, but I only need the red array. Need to get all three though or nothing comes through
 FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*3*(height//binning)*(width//binning)))
 
+
+
+
+
+
+
+
+
+
 # This is the callback function for the camera (look up callback functions if you don't know what that means)
 # It takes the data properties as info (in the shape of attributeMirror), and the image data as arguments
 # It finds the center of mass of the image, and updates global variables with it
     # (Note: this is called from a different thread each time, so returning normally isn't possible as far as I know)
+        # return will only stop the thread. To get data out of this function, I'm using global variables
 def FrameHook(info, data):
         # Variables that should be different depending on what camera it's coming from
-            # baseline_center ,/
+            # baseline_center
             # curr_img_center
-            # baseline_not_set ,/
-    cam_num = info.contents.CameraID
-    print("camID is", cam_num)
+            # baseline_not_set
+    cam_num = info.contents.CameraID # This is 1 or 2
 
     global images_received_counter
     images_received_counter += 1
-    
+
     if info.contents.IsFrameBad:
         global images_failed_counter
         images_failed_counter += 1
@@ -114,14 +123,12 @@ def FrameHook(info, data):
             im = Image.fromarray(img)
             im.save("image that failed to find center.jpeg")
             print("Saved bad image to image file in home directory")
-        # import os
-        # os._exit(1) # closes down all threads, instead of only this one
         return
 
     rad = 25 # radius to look around center of mass at in pixels
              # (For very small beams, may need to reduce this, at cost of greater chance of error)
     beam_region = img[int(center_mass[0])-rad:int(center_mass[0])+rad, int(center_mass[1])-rad:int(center_mass[1])+rad]
-    if False:
+    if False: # For debugging
         plt.imshow(AddCrossHairs(img, (rad,rad)))
         plt.show()
     bitmap = np.where(beam_region > (max*.5), 1, 0) # 1 for pixels over 50% max, 0 for pixels less than that
@@ -132,7 +139,9 @@ def FrameHook(info, data):
         return # This means that the center of mass isn't surrounded by bright pixels
                 # which probably means the shutter is on. If so, shouldn't do anything for now
     
-        
+    # ----- From here on, we assume that the image is a good one (has beam, no errors) -----
+
+    # These will save the center of mass if this is the first image taken in 
     global baseline_center_1
     global baseline_center_2
     global baseline_not_set_1
@@ -151,13 +160,22 @@ def FrameHook(info, data):
         global curr_img_center_2
         curr_img_center_2 = center_mass
 
+
+
+
+
+
+
+
+
+
+
 # ---------- Handle Ctrl-C events ----------
 
 # Without this Ctrl-C handler, most of the time that you hit Ctrl-C, it will be while a function from
     # a .dll file is running. They were written in fortran, which has its own Ctrl-C handler, and it
     # throws some extremely uncatchable errors, meaning that it's impossible to run code after hitting Ctrl-C
     # (cleanup or plotting error) without using this chunk of code
-
 CTRL_C_EVENT = 0
 # CTRL_BREAK_EVENT = 1
 # CTRL_CLOSE_EVENT = 2
@@ -169,10 +187,8 @@ def Ctrl_C_Handler(err_type):
         global continue_loop
         continue_loop = False
         return True
-
 _HandlerRoutine = ctypes.WINFUNCTYPE(ctypes.wintypes.BOOL, ctypes.wintypes.DWORD)
 _ctrl_c_handler = _HandlerRoutine(Ctrl_C_Handler)
-
 if not ctypes.windll.kernel32.SetConsoleCtrlHandler(_ctrl_c_handler):
     raise ctypes.WinError(ctypes.get_last_error())
 
@@ -188,7 +204,6 @@ if not ctypes.windll.kernel32.SetConsoleCtrlHandler(_ctrl_c_handler):
     # It's named:   Mightex Super Speed USB Camera (SM-Series) SDK Manual
 
 import contextlib
-
 @contextlib.contextmanager
 def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to allow cam_num not only be 1 or 2
     num_device_connected = cam_dll.SSClassicUSB_InitDevice()
@@ -255,7 +270,7 @@ if __name__ == "__main__":
     sleep_time = .010 # can shrink this down to .001 seconds, but this should be plenty: The smaller this is, the more energy the computer uses
     with SleepModifier(sleep_time), CameraContext(cam_dll), Newport.Picomotor8742() as nwpt: # TODO replace
         t_start = time.time()
-        while continue_loop:
+        while continue_loop: # ctrl+c will make this false
             i += 1
             # These three functions are neccessary to get data out of the callback function
             GM(ctypes.pointer(msg), 0, 0, 0)
