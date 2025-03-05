@@ -18,18 +18,14 @@ binning = 2**bin_choice
 # Intuitively (Picomotor steps / pixel change)
 # 1 is upstream, 2 is downstream, not the port number on the controller
 y_cam1_pix_to_motor1_conversion = -7
-y_cam1_pix_to_motor2_conversion = -11
-y_cam2_pix_to_motor1_conversion = -33
+#y_cam1_pix_to_motor2_conversion = -11
+#y_cam2_pix_to_motor1_conversion = -33
 y_cam2_pix_to_motor2_conversion = -35
 
 x_cam1_pix_to_motor1_conversion = 6
-x_cam1_pix_to_motor2_conversion = 7
-x_cam2_pix_to_motor1_conversion = 40
+#x_cam1_pix_to_motor2_conversion = 7
+#x_cam2_pix_to_motor1_conversion = 40
 x_cam2_pix_to_motor2_conversion = 30
-
-Mx = [[1,1],[1,1]]
-My = [[1,1],[1,1]]
-
 
 if __name__ == "__main__":
     print("Wrong file: This file stores setup values for other files to use")

@@ -46,6 +46,9 @@ images_dark_counter = 0
 error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
 error_tracker_2 = [[0.,0.]]*n
 
+which_camera_to_take_image_from_next = 1 # This allows us to alternate cameras
+
+
     
 
 # -----------------Callback function & related-----------------------
@@ -113,7 +116,7 @@ def FrameHook(info, data):
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     #del data # delete data to free space
     max = np.max(np.max(img))
-    img[img < (max*.5)] = 0 # set everything less than 50% max to 0
+    img[img < np.average(img)*1.0] = 0 # set everything less than 100% average to 0
     center_mass = center_of_mass(img)
 
     if np.isnan(center_mass).any(): # If so, then the entire image is below 50% max (aka it's all zeros, or something else weird)
@@ -131,8 +134,9 @@ def FrameHook(info, data):
     if False: # For debugging
         plt.imshow(AddCrossHairs(img, (rad,rad)))
         plt.show()
-    bitmap = np.where(beam_region > (max*.5), 1, 0) # 1 for pixels over 50% max, 0 for pixels less than that
-    if np.average(np.average(bitmap)) < .8: # if less than 80% the pixels in region are over 50% max, no beam on image
+    bitmap = np.where(beam_region > 0, 1, 0) # 1 for pixels not thresholded, 0 for pixels that were
+
+    if np.average(np.average(bitmap)) < .7: # if less than 70% the pixels in region are not thresholded, no beam on image
         print("dark frame")
         global images_dark_counter
         images_dark_counter += 1
@@ -263,6 +267,7 @@ if __name__ == "__main__":
     DM = user32.DispatchMessageA
 
     i = 0
+    time_elapsed = 0
     time_steps_1 = []
     time_steps_2 = []
     print("Starting stabilization loop now (Ctrl-C to stop)")
@@ -277,17 +282,13 @@ if __name__ == "__main__":
             TM(ctypes.pointer(msg))
             DM(ctypes.pointer(msg))
 
-            if (curr_img_center_1 == (0,0)) and (curr_img_center_2 == (0,0)): # (0,0) means that a new image hasn't been processed yet
-                time.sleep(sleep_time)
-                continue
-            elif (np.isnan(curr_img_center_1[0]) or np.isnan(curr_img_center_1[1]) 
+            if (np.isnan(curr_img_center_1[0]) or np.isnan(curr_img_center_1[1]) 
                 or np.isnan(curr_img_center_2[0]) or np.isnan(curr_img_center_2[1])): # center of mass gives NaN when given array of 0's
                 raise Exception("No signal detected: is the beam on the camera?")
 
 
-            if (curr_img_center_1 != (0,0)):        # image taken from camera 1
+            if (which_camera_to_take_image_from_next == 1) and (curr_img_center_1 != (0,0)):        # image taken from camera 1
                 y_err, x_err = TupleSubtract(curr_img_center_1, baseline_center_1) # caluclate error in pixels
-                curr_img_center_1 = (0,0)
                 images_processed_counter += 1
                 error_tracker_1.append([y_err, x_err])
                 time_steps_1.append(time.time())
@@ -297,14 +298,14 @@ if __name__ == "__main__":
 
                 # calculate how many motor steps will move the beam by that amount of pixels
                 y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_conversion) # y move on mirror 1
-                y_step_num2 = int(y_pixel_shift_1 * y_cam1_pix_to_motor2_conversion) # etc.
                 x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor1_conversion)
-                x_step_num2 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_conversion)
+                y_step_num2 = 0
+                x_step_num2 = 0
 
+                which_camera_to_take_image_from_next = 2 # flip flop
 
-            else:                                   # image taken from camera 2
+            elif (which_camera_to_take_image_from_next == 2) and (curr_img_center_2 != (0,0)):      # image taken from camera 2
                 y_err, x_err = TupleSubtract(curr_img_center_2, baseline_center_2) # caluclate error in pixels
-                curr_img_center_2 = (0,0)
                 images_processed_counter += 1
                 error_tracker_2.append([y_err, x_err])
                 time_steps_2.append(time.time())
@@ -313,10 +314,16 @@ if __name__ == "__main__":
                 x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num1 = int(y_pixel_shift_2 * y_cam2_pix_to_motor1_conversion) # y move on mirror 1
                 y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor2_conversion) # etc.
-                x_step_num1 = int(x_pixel_shift_2 * x_cam2_pix_to_motor1_conversion)
                 x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor2_conversion)
+                y_step_num1 = 0
+                x_step_num1 = 0
+
+                which_camera_to_take_image_from_next = 1 # flip flop
+            
+            else:
+                time.sleep(sleep_time)
+                continue
 
 
             # Note: in the docs, "device" refers to the controller board, not the motor
@@ -346,6 +353,8 @@ if __name__ == "__main__":
                     time.sleep(sleep_time)
         
         time_elapsed = time.time() - t_start
+        curr_img_center_1 = (0,0) # now that we've moved the motor, we should retake any images stored
+        curr_img_center_2 = (0,0)
 
 
     # ----------------- Shut down camera ---------------------
@@ -353,12 +362,12 @@ if __name__ == "__main__":
 
     PrintStats(images_received_counter, images_processed_counter, images_failed_counter, images_dark_counter, time_elapsed)
 
-    # plot error over time
-    if True:
+    # plot error over time for camera 1: x, y, and total
+    if False:
         from math import sqrt
         error_tracker = error_tracker_1 # Looking at camera 1
         time_steps = time_steps_1
-        x_vals, y_vals = np.array(error_tracker)[n:].transpose() # TODO save this data so I can look at it later
+        y_vals, x_vals = np.array(error_tracker)[n:].transpose() # TODO save this data so I can look at it later
         tot_err = [sqrt(x**2 + y**2) for x,y in error_tracker[n:]]
         plt.plot(time_steps, y_vals, '-.b')
         plt.plot(time_steps, x_vals, '-.r')
@@ -367,3 +376,38 @@ if __name__ == "__main__":
         plt.title("cam1 -- Error over time (x is blue, y is red, total is black)")
         plt.show()
 
+    # plot total error for both cameras, and save all error data to csv
+    if True:
+        from math import sqrt
+        import csv 
+        import datetime
+        from os import getcwd
+
+        if (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so sometimes it has one more image than 2
+            error_tracker_2.append(error_tracker_2[-1])
+            try:
+                time_steps_2.append(time_steps_2[-1])
+            except:
+                print("length of cam 2 images is " + str(len(time_steps_2)))
+                print("length of cam 1 images is " + str(len(time_steps_1)))
+                raise Exception("camera two never took images")
+
+        y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
+        y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
+        tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
+        tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
+
+        # --- Save the error data! I want to make figures from this later! ---
+        csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + ' 2_cam_stabilization.csv'
+        with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
+            writer = csv.writer(f)
+            names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
+
+            writer.writerows(names)
+            writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
+
+        plt.plot(time_steps_1, tot_err1, '-.b', label="Camera 1 net error")
+        plt.plot(time_steps_2, tot_err2, '-.r', label="Camera 2 net error")
+
+        plt.title("Total error for cameras 1,2 over time={:.2f}".format(time_elapsed))
+        plt.show()
