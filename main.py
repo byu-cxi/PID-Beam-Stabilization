@@ -313,8 +313,8 @@ if __name__ == "__main__":
                 error_tracker_2.append([y_err, x_err])
                 time_steps_2.append(time.time())
 
-                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X     # PID function in helper.py
-                x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
+                y_pixel_shift_2 = PID(0, error_tracker_2, n, scaler=.3) # 0 for Y, 1 for X     # PID function in helper.py
+                x_pixel_shift_2 = PID(1, error_tracker_2, n, scaler=.3) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
                 y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor3_conversion) # etc.
@@ -382,7 +382,7 @@ if __name__ == "__main__":
         from math import sqrt
         import csv 
         import datetime
-        from os import getcwd
+        import os
 
         if (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so sometimes it has one more image than 2
             error_tracker_2.append(error_tracker_2[-1])
