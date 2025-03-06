@@ -115,7 +115,7 @@ def FrameHook(info, data):
 
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     #del data # delete data to free space
-    max = np.max(np.max(img))
+    #max = np.max(np.max(img))
     img[img < np.average(img)*1.0] = 0 # set everything less than 100% average to 0
     center_mass = center_of_mass(img)
 
@@ -298,7 +298,7 @@ if __name__ == "__main__":
                 error_tracker_1.append([y_err, x_err])
                 time_steps_1.append(time.time())
 
-                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X
+                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X     # PID function in helper.py
                 x_pixel_shift_1 = PID(1, error_tracker_1, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
@@ -313,7 +313,7 @@ if __name__ == "__main__":
                 error_tracker_2.append([y_err, x_err])
                 time_steps_2.append(time.time())
 
-                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X
+                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X     # PID function in helper.py
                 x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels

@@ -5,9 +5,9 @@
 # Note: This does not move the motors back to their starting positions.
     # It is a good idea to move, then move again with negative steps to reset the motor location
     # This will also allow you to get 2 estimates for the calibration number.
-cam_num = 1 # current setup: 1=upstream, 2=downstream #TODO change
-mot_num = 1 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2 #TODO update
-num_steps = 10
+cam_num = 1 # current setup: 1=upstream, 2=downstream
+mot_num = 1 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
+num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
 
@@ -34,6 +34,7 @@ mass_center_tracker1 = []
 mass_center_tracker2 = []
 stored_start_end_imgs = []
 save_img = True
+scan_time = 20
 
 # -----------------Callback things-----------------------
 
@@ -64,10 +65,11 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
 FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*3*(height//binning)*(width//binning)))
 
 def FrameHook(info, data):
+    if info.contents.IsFrameBad:
+        return
     #print("shape is : ", str(np.array(data.contents).shape))
-    img = np.flip(np.array(data.contents).reshape((width//binning, height//binning,3)), 0)
-    img = img[:,:,0]
-    img[img < (np.max(np.max(img))/1.5)] = 0 # set everything less than (1/1.5)*max to 0
+    img = np.flip(np.array(data.contents)[:,:,0], 0)
+    img[img < np.average(img)] = 0 # set everything less than average to 0
     center_mass = center_of_mass(img)
     if np.isnan(center_mass).any(): # if there isn't any findable center of mass, stop the program
         print("No center of mass found: is the beam on the camera?")
@@ -98,9 +100,11 @@ if (cam_dll.SSClassicUSB_AddDeviceToWorkingSet(cam_num) == -1):
     raise Exception("Camera didn't connect (might be invalid device number)")
 if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for third argument, change based on number of cores (see manual pg. 7)
     raise Exception("Camera not in working set")
+if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1): # can be 1, 24, 48, 96 (frame rate)
+    raise Exception("Frequency setting failed -- cam_num=" + str(cam_num))
 if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
     raise Exception("Resolution setting didn't work:", res_response)
-if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 15) == -1): # multiply the number by 50 um to get exposure time
+if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 8) == -1): # multiply the number by 50 um to get exposure time
     raise Exception("Exposure time setting failed")
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
@@ -117,7 +121,7 @@ GM = user32.GetMessageA
 TM = user32.TranslateMessage
 DM = user32.DispatchMessageA
 
-t_end = time.time() + 5
+t_end = time.time() + scan_time
 while time.time() < t_end:
     GM(ctypes.pointer(msg), 0, 0, 0)
     TM(ctypes.pointer(msg))
@@ -146,7 +150,7 @@ with Newport.Picomotor8742() as nwpt:
 
 delay_var = True
 # ---------- Find new average center -----------t_end = time.time() + 3
-t_end = time.time() + 5
+t_end = time.time() + scan_time
 while time.time() < t_end:
     # These three functions are neccessary to get data out of the callback function
     GM(ctypes.pointer(msg), 0, 0, 0)
