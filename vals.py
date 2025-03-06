@@ -17,15 +17,10 @@ binning = 2**bin_choice
     # Code doesn't break if this isn't true, but it becomes a bit less efficient
 # Intuitively (Picomotor steps / pixel change)
 # 1 is upstream, 2 is downstream, not the port number on the controller
-y_cam1_pix_to_motor1_conversion = -7
-#y_cam1_pix_to_motor2_conversion = -11
-#y_cam2_pix_to_motor1_conversion = -33
-y_cam2_pix_to_motor2_conversion = -35
-
-x_cam1_pix_to_motor1_conversion = 6
-#x_cam1_pix_to_motor2_conversion = 7
-#x_cam2_pix_to_motor1_conversion = 40
-x_cam2_pix_to_motor2_conversion = 30
+y_cam1_pix_to_motor1_conversion = -7    # y motor on mirror 1
+x_cam1_pix_to_motor2_conversion = 6     # x motor on mirror 1
+y_cam2_pix_to_motor3_conversion = -35   # y motor on mirror 2
+x_cam2_pix_to_motor4_conversion = 30    # x motor on mirror 2
 
 if __name__ == "__main__":
     print("Wrong file: This file stores setup values for other files to use")

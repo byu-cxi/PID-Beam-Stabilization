@@ -287,6 +287,11 @@ if __name__ == "__main__":
                 raise Exception("No signal detected: is the beam on the camera?")
 
 
+            y_step_num1 = 0
+            x_step_num1 = 0
+            y_step_num2 = 0
+            x_step_num2 = 0
+
             if (which_camera_to_take_image_from_next == 1) and (curr_img_center_1 != (0,0)):        # image taken from camera 1
                 y_err, x_err = TupleSubtract(curr_img_center_1, baseline_center_1) # caluclate error in pixels
                 images_processed_counter += 1
@@ -298,9 +303,7 @@ if __name__ == "__main__":
 
                 # calculate how many motor steps will move the beam by that amount of pixels
                 y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_conversion) # y move on mirror 1
-                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor1_conversion)
-                y_step_num2 = 0
-                x_step_num2 = 0
+                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_conversion)
 
                 which_camera_to_take_image_from_next = 2 # flip flop
 
@@ -314,10 +317,8 @@ if __name__ == "__main__":
                 x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor2_conversion) # etc.
-                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor2_conversion)
-                y_step_num1 = 0
-                x_step_num1 = 0
+                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor3_conversion) # etc.
+                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor4_conversion)
 
                 which_camera_to_take_image_from_next = 1 # flip flop
             
