@@ -27,6 +27,7 @@ def PID(axis, error_tracker, n, scaler=1):
     I = scaler * .3 / n      # adjust this to reduce oscillations, and change n to somewhat large value
     D = scaler * 0           # Not going to include D because papers said that it wasn't necessary. Can be added in if you want
                                         # Just be careful of timing: changing the frame rate will require changing D
+                                        # This makes sense: the motors stop when they are done moving, so the D shouldn't matter?
 
     P_contribution = - P * final_elements[n-1]
     I_contribution = - I * np.sum(final_elements)

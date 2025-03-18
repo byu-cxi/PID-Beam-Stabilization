@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import os
 
-csv_name = "mar5 1 fighting PI.csv"
+csv_name = "mar7 2 none running.csv"
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
 arr = []
 with open(csv_file_path, 'r') as f:
@@ -18,7 +18,7 @@ with open(csv_file_path, 'r') as f:
 #           ["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]
 
 
-if True:  # This graph shows the x and y error for both cameras over time
+if False:  # This graph shows the x and y error for both cameras over time
 
     fig, ax = plt.subplots(2,1, figsize=(8,5))
     plt.suptitle(csv_name, fontweight="bold")
@@ -52,4 +52,20 @@ if False: # This graph recreates the one made in the main program, but better la
     time_elapsed = max(arr[-1,0],arr[-1,4]) - max(arr[0,0],arr[0,4])
     plt.title("Total error for cameras 1,2 over time={:.2f} s".format(time_elapsed), fontweight="bold")
     plt.legend(loc="upper right", fancybox=True, framealpha=1)
+    plt.xlabel("time")
+    plt.ylabel("pixels")
     plt.show()
+
+if True: # This graph is for SRC presentation
+
+    plt.figure(figsize=(4,4))
+    plt.plot(arr[:,0]-arr[0,0], arr[:,3], '-.b', label="Cam 1")
+    #plt.plot(arr[:,4]-arr[0,4], arr[:,7], '-.r', label="Cam 2")
+    plt.ylim(0,20)
+
+    time_elapsed = max(arr[-1,0],arr[-1,4]) - max(arr[0,0],arr[0,4])
+    plt.title("Cam 1, no stabilization", fontweight="bold")
+    plt.legend(loc="upper right", fancybox=True, framealpha=1)
+    plt.xlabel("time")
+    plt.ylabel("pixels")
+    plt.savefig("c1,ns")
