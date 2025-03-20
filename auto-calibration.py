@@ -6,7 +6,7 @@
     # It is a good idea to move, then move again with negative steps to reset the motor location
     # This will also allow you to get 2 estimates for the calibration number.
 cam_num = 1 # current setup: 1=upstream, 2=downstream
-mot_num = 1 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
+mot_num = 2 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
 num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
@@ -34,7 +34,7 @@ mass_center_tracker1 = []
 mass_center_tracker2 = []
 stored_start_end_imgs = []
 save_img = True
-scan_time = 20
+scan_time = 40
 
 # -----------------Callback things-----------------------
 
@@ -69,7 +69,7 @@ def FrameHook(info, data):
         return
     #print("shape is : ", str(np.array(data.contents).shape))
     img = np.flip(np.array(data.contents)[:,:,0], 0)
-    img[img < np.average(img)] = 0 # set everything less than average to 0
+    img[img < np.max(img)*.25] = 0 # set everything less than average to 0
     center_mass = center_of_mass(img)
     if np.isnan(center_mass).any(): # if there isn't any findable center of mass, stop the program
         print("No center of mass found: is the beam on the camera?")
@@ -201,11 +201,11 @@ if (len(stored_start_end_imgs) != 2):
 fig = plt.figure()
 
 fig.add_subplot(1,2,1)
-plt.imshow(stored_start_end_imgs[0])
+plt.imshow(np.log(np.log(stored_start_end_imgs[0]+1)+1))
 plt.title("initial location")
 
 fig.add_subplot(1,2,2)
-plt.imshow(stored_start_end_imgs[1])
+plt.imshow(np.log(np.log(stored_start_end_imgs[1]+1)+1))
 plt.title("final location")
 
 plt.suptitle("Image before and after mirror move")

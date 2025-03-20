@@ -116,7 +116,7 @@ def FrameHook(info, data):
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     #del data # delete data to free space
     #max = np.max(np.max(img))
-    img[img < np.average(img)*1.0] = 0 # set everything less than 100% average to 0
+    img[img < np.max(img)*.25] = 0
     center_mass = center_of_mass(img)
 
     if np.isnan(center_mass).any(): # If so, then the entire image is below 50% max (aka it's all zeros, or something else weird)
@@ -302,10 +302,12 @@ if __name__ == "__main__":
                 x_pixel_shift_1 = PID(1, error_tracker_1, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_conversion) # y move on mirror 1
-                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_conversion)
+                y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_steps) # y move on mirror 1
+                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_steps)
 
-                which_camera_to_take_image_from_next = 2 # flip flop
+                net_error = np.sqrt(y_pixel_shift_1**2 + x_pixel_shift_1**2) # temp : get one camera very good, then move other
+                if (net_error < 1):
+                    which_camera_to_take_image_from_next = 2 # flip flop
 
             elif (which_camera_to_take_image_from_next == 2) and (curr_img_center_2 != (0,0)):      # image taken from camera 2
                 y_err, x_err = TupleSubtract(curr_img_center_2, baseline_center_2) # caluclate error in pixels
@@ -313,12 +315,12 @@ if __name__ == "__main__":
                 error_tracker_2.append([y_err, x_err])
                 time_steps_2.append(time.time())
 
-                y_pixel_shift_2 = PID(0, error_tracker_2, n, scaler=.3) # 0 for Y, 1 for X     # PID function in helper.py
-                x_pixel_shift_2 = PID(1, error_tracker_2, n, scaler=.3) # tells how many pixels to shift by
+                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X     # PID function in helper.py
+                x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
 
                 # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor3_conversion) # etc.
-                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor4_conversion)
+                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor3_steps)
+                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor4_steps)
 
                 which_camera_to_take_image_from_next = 1 # flip flop
             
@@ -384,14 +386,20 @@ if __name__ == "__main__":
         import datetime
         import os
 
-        if (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so sometimes it has one more image than 2
-            error_tracker_2.append(error_tracker_2[-1])
-            try:
-                time_steps_2.append(time_steps_2[-1])
-            except:
-                print("length of cam 2 images is " + str(len(time_steps_2)))
-                print("length of cam 1 images is " + str(len(time_steps_1)))
-                raise Exception("camera two never took images")
+        print("length of cam 2 images is " + str(len(time_steps_2)))
+        print("length of cam 1 images is " + str(len(time_steps_1)))
+
+        if (len(time_steps_2) == 0):
+            raise Exception("camera two never took images")
+
+        while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
+            error_tracker_2.append([0,0])
+            time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
+        
+        while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
+            error_tracker_2.append([0,0])
+            time_steps_2.append(None)
+
 
         y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
         y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()

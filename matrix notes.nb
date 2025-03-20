@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      4116,        140]
-NotebookOptionsPosition[      3728,        125]
-NotebookOutlinePosition[      4163,        142]
-CellTagsIndexPosition[      4120,        139]
+NotebookDataLength[      4271,        144]
+NotebookOptionsPosition[      3882,        129]
+NotebookOutlinePosition[      4318,        146]
+CellTagsIndexPosition[      4275,        143]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -91,12 +91,16 @@ Cell[BoxData[{
       StyleBox["M",
        FontWeight->"Bold"], 
       RowBox[{"-", "1"}]], "=", 
-     RowBox[{"(", "\[NoBreak]", GridBox[{
-        {"d", 
-         RowBox[{"-", "b"}]},
-        {
-         RowBox[{"-", "c"}], "a"}
-       }], "\[NoBreak]", ")"}]}], "}"}], " ", "to", " ", "make", "    ", 
+     RowBox[{
+      FractionBox["1", 
+       RowBox[{"det", 
+        RowBox[{"(", "M", ")"}]}]], 
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {"d", 
+          RowBox[{"-", "b"}]},
+         {
+          RowBox[{"-", "c"}], "a"}
+        }], "\[NoBreak]", ")"}]}]}], "}"}], " ", "to", " ", "make", "    ", 
    RowBox[{"{", 
     RowBox[{
      RowBox[{"(", "\[NoBreak]", GridBox[{
@@ -119,14 +123,14 @@ Cell[BoxData[{
  CellChangeTimes->{{3.9265483846431046`*^9, 3.926548396433071*^9}, {
   3.926548474392991*^9, 3.9265485918078966`*^9}, {3.926548631306299*^9, 
   3.9265487263182287`*^9}, {3.9265487773292365`*^9, 3.9265489368404865`*^9}, {
-  3.926548972713972*^9, 
-  3.926549060141028*^9}},ExpressionUUID->"f3068dbf-003d-4d93-bf2c-\
+  3.926548972713972*^9, 3.926549060141028*^9}, {3.9513143780679455`*^9, 
+  3.951314384268652*^9}},ExpressionUUID->"f3068dbf-003d-4d93-bf2c-\
 56f5ed72547b"]
 },
 WindowSize->{1152, 579.6},
 WindowMargins->{{
   Automatic, -5.399999999999864}, {-5.399999999999977, Automatic}},
-FrontEndVersion->"13.3 for Microsoft Windows (64-bit) (June 3, 2023)",
+FrontEndVersion->"14.1 for Microsoft Windows (64-bit) (July 16, 2024)",
 StyleDefinitions->"Default.nb",
 ExpressionUUID->"e5ed8c3d-5db2-49be-8081-95d1cef56640"
 ]
@@ -141,7 +145,7 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 3166, 103, 153, "Text",ExpressionUUID->"f3068dbf-003d-4d93-bf2c-56f5ed72547b"]
+Cell[558, 20, 3320, 107, 153, "Text",ExpressionUUID->"f3068dbf-003d-4d93-bf2c-56f5ed72547b"]
 }
 ]
 *)
