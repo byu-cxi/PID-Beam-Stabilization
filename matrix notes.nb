@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      4271,        144]
-NotebookOptionsPosition[      3882,        129]
-NotebookOutlinePosition[      4318,        146]
-CellTagsIndexPosition[      4275,        143]
+NotebookDataLength[      5635,        177]
+NotebookOptionsPosition[      5246,        162]
+NotebookOutlinePosition[      5682,        179]
+CellTagsIndexPosition[      5639,        176]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -74,7 +74,7 @@ Cell[BoxData[{
           {
            RowBox[{"n", "*", "a"}]},
           {
-           RowBox[{"n", "*", "b"}]}
+           RowBox[{"n", "*", "c"}]}
          }], "\[NoBreak]", ")"}], "=", 
        RowBox[{"(", "\[NoBreak]", GridBox[{
           {
@@ -82,7 +82,30 @@ Cell[BoxData[{
           {
            SubscriptBox["err", "2"]}
          }], "\[NoBreak]", ")"}]}]}], "}"}], " ", "then", " ", "solve", " ", 
-    "for", " ", "a"}], "&"}], "b"}], "\[IndentingNewLine]", 
+    "for", " ", "a"}], "&"}], "c", "   ", 
+  RowBox[{"(", 
+   RowBox[{"auto", "-", 
+    RowBox[{
+     RowBox[{"calibration", ".", "py"}], " ", 
+     RowBox[{"finds", " ", "[", 
+      RowBox[{
+       FractionBox["1", "a"], " ", ",", 
+       FractionBox["1", "b"], ",", 
+       FractionBox["1", "c"], ",", 
+       RowBox[{"or", " ", 
+        FractionBox["1", "d"]}]}], "]"}]}]}], ")"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"I", " ", "have", " ", "found", " ", "that", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     FractionBox["1", "a"], ",", 
+     FractionBox["1", "b"], ",", 
+     FractionBox["1", "c"], ",", 
+     FractionBox["1", "d"]}], "}"}], " ", "tend", " ", "to", " ", "be", " ", 
+   "between", " ", "1", " ", "and", " ", "100"}], ",", 
+  RowBox[{
+   RowBox[{"usually", " ", "in", " ", "the", " ", "10"}], "-", 
+   RowBox[{"50", "  ", "range"}]}]}], "\[IndentingNewLine]", 
  RowBox[{"Then", ",", " ", 
   RowBox[{"use", " ", 
    RowBox[{"{", 
@@ -105,9 +128,9 @@ Cell[BoxData[{
     RowBox[{
      RowBox[{"(", "\[NoBreak]", GridBox[{
         {
-         SubscriptBox["mov", "1"]},
+         SubscriptBox["mot_step", "1"]},
         {
-         SubscriptBox["mov", "2"]}
+         SubscriptBox["mot_step", "2"]}
        }], "\[NoBreak]", ")"}], "=", 
      RowBox[{
       SuperscriptBox[
@@ -119,12 +142,22 @@ Cell[BoxData[{
           SubscriptBox["PID", "1"]},
          {
           SubscriptBox["PID", "2"]}
-        }], "\[NoBreak]", ")"}]}]}], "}"}], " "}]}]}], "Text",
+        }], "\[NoBreak]", ")"}]}]}], "}"}], "  ", 
+   RowBox[{"(", 
+    RowBox[{
+    "PID", " ", "returns", " ", "in", " ", "number", " ", "of", " ", 
+     "pixels"}], ")"}]}]}]}], "Text",
  CellChangeTimes->{{3.9265483846431046`*^9, 3.926548396433071*^9}, {
   3.926548474392991*^9, 3.9265485918078966`*^9}, {3.926548631306299*^9, 
   3.9265487263182287`*^9}, {3.9265487773292365`*^9, 3.9265489368404865`*^9}, {
   3.926548972713972*^9, 3.926549060141028*^9}, {3.9513143780679455`*^9, 
-  3.951314384268652*^9}},ExpressionUUID->"f3068dbf-003d-4d93-bf2c-\
+  3.951314384268652*^9}, {3.9514936974301586`*^9, 3.9514937439519005`*^9}, {
+  3.9514943540175343`*^9, 3.951494360090643*^9}, {3.951494942674999*^9, 
+  3.951494958462078*^9}, {3.9520905747263412`*^9, 3.9520906194823513`*^9}, {
+  3.952090687659292*^9, 3.952090693789011*^9}, {3.9520910235488434`*^9, 
+  3.9520910957391815`*^9}, {3.9520911274989815`*^9, 3.952091147584465*^9}, {
+  3.952091186995367*^9, 
+  3.9520911939403706`*^9}},ExpressionUUID->"f3068dbf-003d-4d93-bf2c-\
 56f5ed72547b"]
 },
 WindowSize->{1152, 579.6},
@@ -145,7 +178,7 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 3320, 107, 153, "Text",ExpressionUUID->"f3068dbf-003d-4d93-bf2c-56f5ed72547b"]
+Cell[558, 20, 4684, 140, 194, "Text",ExpressionUUID->"f3068dbf-003d-4d93-bf2c-56f5ed72547b"]
 }
 ]
 *)

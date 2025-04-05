@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import os
 
-csv_name = "mar20 3 short test.csv"
+csv_name = "apr1 1 PI test worked with spikes.csv"
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
 arr1 = []
 arr2 = []
@@ -43,7 +43,7 @@ if True:  # This graph shows the x and y error for both cameras over time
     ax[0].set_title("camera 1")
     ax[0].set_xlabel("time")
     ax[0].set_ylabel("pixels")
-    ax[0].legend(loc="upper right", fancybox=True, framealpha=1)
+    ax[0].legend(loc="upper left", fancybox=True, framealpha=1)
     ax[0].set_xlim(-.03*time_elapsed, 1.03*time_elapsed) # make graphs have same (asethetic) time length
 
     ax[1].plot(arr2[:,0], arr2[:,1],'.-b', label="y err 2")
@@ -52,15 +52,16 @@ if True:  # This graph shows the x and y error for both cameras over time
     ax[1].set_title("camera 2")
     ax[1].set_xlabel("time")
     ax[1].set_ylabel("pixels")
-    ax[1].legend(loc="upper right", fancybox=True, framealpha=1)
+    ax[1].legend(loc="upper left", fancybox=True, framealpha=1)
     ax[1].set_xlim(-.03*time_elapsed, 1.03*time_elapsed)
 
 
     plt.tight_layout()
     plt.show()
 
+breakpoint()
 
-if True: # This graph recreates the one made in the main program, but better labeling and shape
+if False: # This graph recreates the one made in the main program, but better labeling and shape
 
     plt.figure(figsize=(8,4))
     plt.plot(arr1[:,0], arr1[:,3], '-.b', label="Cam 1")
