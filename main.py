@@ -46,9 +46,6 @@ images_dark_counter = 0
 error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
 error_tracker_2 = [[0.,0.]]*n
 
-which_camera_to_take_image_from_next = 1 # This allows us to alternate cameras
-
-
     
 
 # -----------------Callback function & related-----------------------
@@ -128,7 +125,7 @@ def FrameHook(info, data):
             print("Saved bad image to image file in home directory")
         return
 
-    rad = 25 # radius to look around center of mass at in pixels
+    rad = 15 # radius to look around center of mass at in pixels
              # (For very small beams, may need to reduce this, at cost of greater chance of error)
     beam_region = img[int(center_mass[0])-rad:int(center_mass[0])+rad, int(center_mass[1])-rad:int(center_mass[1])+rad]
     if False: # For debugging
@@ -136,8 +133,10 @@ def FrameHook(info, data):
         plt.show()
     bitmap = np.where(beam_region > 0, 1, 0) # 1 for pixels not thresholded, 0 for pixels that were
 
-    if np.average(np.average(bitmap)) < .7: # if less than 70% the pixels in region are not thresholded, no beam on image
-        print("dark frame")
+    if np.average(np.average(bitmap)) < .4: # if less than 70% the pixels in region are not thresholded, no beam on image
+        print("dark frame in camera", cam_num, "- max intensity is", np.max(img))
+        plt.imshow(beam_region)
+        plt.show()
         global images_dark_counter
         images_dark_counter += 1
         return # This means that the center of mass isn't surrounded by bright pixels
@@ -233,7 +232,7 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
         res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
         if (res_response != 1):
             raise Exception("Resolution setting didn't work:", res_response)
-        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time
+        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time, max 15
             raise Exception("Exposure time setting failed")
 
     if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
@@ -242,6 +241,8 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
     for cam_num in range(1, num_device_connected+1):
         if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
             raise Exception("Frame grabbing failed -- cam_num=" + str(cam_num))
+
+    print("finished camera setup")
 
     yield # This is where the loop is run: when the loop is ended, the rest of the function is run
 
@@ -292,37 +293,25 @@ if __name__ == "__main__":
             y_step_num2 = 0
             x_step_num2 = 0
 
-            if (which_camera_to_take_image_from_next == 1) and (curr_img_center_1 != (0,0)):        # image taken from camera 1
-                y_err, x_err = TupleSubtract(curr_img_center_1, baseline_center_1) # caluclate error in pixels
-                images_processed_counter += 1
-                error_tracker_1.append([y_err, x_err])
+            if (curr_img_center_1 != (0,0)) and (curr_img_center_2 != (0,0)):      # image taken from both cameras
+                y_err1, x_err1 = TupleSubtract(curr_img_center_1, baseline_center_1) # caluculate error in pixels
+                y_err2, x_err2 = TupleSubtract(curr_img_center_2, baseline_center_2) # caluculate error in pixels
+                images_processed_counter += 2
+                error_tracker_1.append([y_err1, x_err1]) # so we can plot error later
+                error_tracker_2.append([y_err2, x_err2])
                 time_steps_1.append(time.time())
-
-                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X     # PID function in helper.py
-                x_pixel_shift_1 = PID(1, error_tracker_1, n) # tells how many pixels to shift by
-
-                # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num1 = int(y_pixel_shift_1 * y_cam1_pix_to_motor1_steps) # y move on mirror 1
-                x_step_num1 = int(x_pixel_shift_1 * x_cam1_pix_to_motor2_steps)
-
-                net_error = np.sqrt(y_pixel_shift_1**2 + x_pixel_shift_1**2) # temp : get one camera very good, then move other
-                if (net_error < 1):
-                    which_camera_to_take_image_from_next = 2 # flip flop
-
-            elif (which_camera_to_take_image_from_next == 2) and (curr_img_center_2 != (0,0)):      # image taken from camera 2
-                y_err, x_err = TupleSubtract(curr_img_center_2, baseline_center_2) # caluclate error in pixels
-                images_processed_counter += 1
-                error_tracker_2.append([y_err, x_err])
                 time_steps_2.append(time.time())
 
-                y_pixel_shift_2 = PID(0, error_tracker_2, n) # 0 for Y, 1 for X     # PID function in helper.py
-                x_pixel_shift_2 = PID(1, error_tracker_2, n) # tells how many pixels to shift by
+                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X
+                x_pixel_shift_1 = PID(1, error_tracker_1, n) # This returns ideal number of pixels to shift by
+                y_pixel_shift_2 = PID(0, error_tracker_2, n) # n is how far to look for the I term
+                x_pixel_shift_2 = PID(1, error_tracker_2, n) # the PID function is in helper.py
 
                 # calculate how many motor steps will move the beam by that amount of pixels
-                y_step_num2 = int(y_pixel_shift_2 * y_cam2_pix_to_motor3_steps)
-                x_step_num2 = int(x_pixel_shift_2 * x_cam2_pix_to_motor4_steps)
-
-                which_camera_to_take_image_from_next = 1 # flip flop
+                    # Look at "vals.py" and "matrix notes.nb" for how this works
+                y_step_num1, y_step_num2 = (Y_matrix@np.array([y_pixel_shift_1, y_pixel_shift_2])).astype(int)
+                x_step_num1, x_step_num2 = (X_matrix@np.array([x_pixel_shift_1, x_pixel_shift_2])).astype(int)
+                print("numbers of steps are:",y_step_num1, y_step_num2,x_step_num1, x_step_num2)
             
             else:
                 time.sleep(sleep_time)
@@ -338,11 +327,14 @@ if __name__ == "__main__":
             y2_axis = 3
             x2_axis = 4
 
+            #if (max(np.abs([x_step_num1,x_step_num2,y_step_num1,y_step_num2])) != 0):
+                #breakpoint()
+
             if abs(y_step_num1) >= min_move:
                 nwpt.move_by(y1_axis, y_step_num1) # 1 for Y, 2 for X
                 while (nwpt.is_moving(axis=y1_axis)):     # yes I could use the nwpt.wait_move() function
-                    time.sleep(sleep_time)              # but in the pylablib source code it does exactly this 
-            if abs(x_step_num1) >= min_move:             # sequence, except sleeps for .01 instead of .001 seconds
+                    time.sleep(sleep_time)                     # but in the pylablib source code it does exactly this 
+            if abs(x_step_num1) >= min_move:                   # sequence, except sleeps for .01 instead of .001 seconds
                 nwpt.move_by(x1_axis, x_step_num1)             # and the higher precision can't hurt
                 while (nwpt.is_moving(axis=x1_axis)):
                     time.sleep(sleep_time)
@@ -365,7 +357,7 @@ if __name__ == "__main__":
 
     PrintStats(images_received_counter, images_processed_counter, images_failed_counter, images_dark_counter, time_elapsed)
 
-    # plot error over time for camera 1: x, y, and total
+    # FOR ONE CAMERA - plot error over time for camera 1: x, y, and total
     if False:
         from math import sqrt
         error_tracker = error_tracker_1 # Looking at camera 1
@@ -379,8 +371,8 @@ if __name__ == "__main__":
         plt.title("cam1 -- Error over time (x is blue, y is red, total is black)")
         plt.show()
 
-    # plot total error for both cameras, and save all error data to csv
-    if True:
+    # FOR MAIN RUNS - plot total error for both cameras, and save all error data to csv
+    if False:
         from math import sqrt
         import csv 
         import datetime
@@ -419,4 +411,34 @@ if __name__ == "__main__":
         plt.plot(time_steps_2, tot_err2, '-.r', label="Camera 2 net error")
 
         plt.title("Total error for cameras 1,2 over time={:.2f}".format(time_elapsed))
+        plt.legend(loc="upper right")
+        plt.show()
+
+    # FOR CALIBRATING PI - this is set up to not save any data, but show x and y errors on both cameras only
+    if True:
+        if (len(time_steps_2) == 0):
+            raise Exception("camera two never took images")
+        while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
+            error_tracker_2.append([0,0])
+            time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
+        while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
+            error_tracker_2.append([0,0])
+            time_steps_2.append(None)
+
+
+        y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
+        y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
+
+        fig, ax = plt.subplots((2,2))
+
+        ax[0,0].plot(time_steps_1, y_vals1, '-.b', label="y axis camera 1")
+        ax[0,0].title("Y axis, Cam 1")
+        ax[0,1].plot(time_steps_1, x_vals1, '-.r', label="x axis camera 1")
+        ax[0,1].title("X axis, Cam 1")
+        ax[1,0].plot(time_steps_2, y_vals2, '-.r', label="y axis camera 2")
+        ax[1,0].title("Y axis, Cam 2")
+        ax[1,1].plot(time_steps_2, x_vals2, '-.r', label="x axis camera 2")
+        ax[1,1].title("X axis, Cam 2")
+
+        fig.title("Total error for cameras 1,2 over time={:.2f}".format(time_elapsed))
         plt.show()
