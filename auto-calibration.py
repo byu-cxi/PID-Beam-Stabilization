@@ -5,8 +5,8 @@
 # Note: This does not move the motors back to their starting positions.
     # It is a good idea to move, then move again with negative steps to reset the motor location
     # This will also allow you to get 2 estimates for the calibration number.
-cam_num = 1 # current setup: 1=upstream, 2=downstream
-mot_num = 2 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
+cam_num = 2 # current setup: 1=upstream, 2=downstream
+mot_num = 4 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
 num_steps = 100
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
@@ -16,6 +16,7 @@ import ctypes
 from ctypes.wintypes import MSG
 import numpy as np
 from scipy.ndimage import center_of_mass
+from matplotlib import pyplot as plt
 from helper import * # helper.py in directory
 from vals import *   # vals.py in directory
 user32 = ctypes.windll.user32
@@ -34,7 +35,7 @@ mass_center_tracker1 = []
 mass_center_tracker2 = []
 stored_start_end_imgs = []
 save_img = True
-scan_time = 40
+scan_time = 15
 
 # -----------------Callback things-----------------------
 
@@ -71,6 +72,7 @@ def FrameHook(info, data):
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     img[img < np.max(img)*.25] = 0 # set everything less than average to 0
     center_mass = center_of_mass(img)
+
     if np.isnan(center_mass).any(): # if there isn't any findable center of mass, stop the program
         print("No center of mass found: is the beam on the camera?")
         import os
@@ -102,10 +104,13 @@ if (cam_dll.SSClassicUSB_StartCameraEngine(None, 8, 2, 0) == -1): # SWITCH for t
     raise Exception("Camera not in working set")
 if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1): # can be 1, 24, 48, 96 (frame rate)
     raise Exception("Frequency setting failed -- cam_num=" + str(cam_num))
-if (cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0) != 1):
+res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
+if (res_response != 1):
     raise Exception("Resolution setting didn't work:", res_response)
-if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 8) == -1): # multiply the number by 50 um to get exposure time
+if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 15) == -1): # multiply the number by 50 um to get exposure time, max 15
     raise Exception("Exposure time setting failed")
+if (cam_dll.SSClassicUSB_SetGains(cam_num,1,1,8) != 1): # gain is 2^((num-8)/8) : gain goes .125x -> 8x
+    raise Exception("Gain setting failed")              # Despite what documentation says, third value (not first) is controlling one
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
     raise Exception("Frame hooker start failed")
@@ -113,6 +118,8 @@ if (cam_dll.SSClassicUSB_StartFrameGrab(cam_num) == -1):
     raise Exception("Frame grabbing failed")
 
 
+
+print("Starting initial measurement")
 
 # ---------- Collect the locations for the initial location ----------
 
@@ -186,7 +193,6 @@ print("If Y-axis shift, the calibration number is", (num_steps/difference[0]))
 print("Note: This number will likely be in the thousands if the motor did not move in that axis")
 print("Put these numbers into the vals.py file")
 
-from matplotlib import pyplot as plt
 
 if True:
     x_vals, y_vals = np.array(mass_center_tracker1).transpose()
