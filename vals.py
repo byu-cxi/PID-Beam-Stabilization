@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 
-height = 2560
+height = 2560 # camera pixel dimensions
 width = 1920
 metadata_size = 128
 img_size = metadata_size + (height*width)
@@ -11,24 +11,27 @@ img_size = metadata_size + (height*width)
 
 dll_path = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/dll_folder/Mightex/SSClassic_USBCamera_SDK.dll'
 
-bin_choice = 0 # ranges from 0 (no binning) to 2 (bin by 4)
+bin_choice = 0 # ranges from    0 (no binning)  ->  2 (bin by 4)
 binning = 2**bin_choice
 
 # Get these values from auto-calibration.py code
 # Assumption made that movement of the X motor doen't change the Y location (and vice versa)
     # Code doesn't break if this isn't true, but it becomes a bit less efficient
-# Intuitively (Picomotor steps / pixel change)
+# Intuitively,  (Picomotor steps / pixel change) = these values
 # 1 is upstream, 2 is downstream. motorX where X is the port number
-y_cam1_pix_to_motor1_steps = -8    # How many motor steps on motor 1 does a 1 pixel y-shift on camera 1 correspond to?
-y_cam1_pix_to_motor3_steps = -15   # etc.
-y_cam2_pix_to_motor1_steps = -67
-y_cam2_pix_to_motor3_steps = -55
+y_cam1_pix_to_motor1_steps = -7.5  # How many motor steps on motor 1 does a 1 pixel y-shift on camera 1 correspond to?
+y_cam1_pix_to_motor3_steps = -12.5 # etc.
+y_cam2_pix_to_motor1_steps = -13
+y_cam2_pix_to_motor3_steps = -20     # These numbers have units of (motor_steps / camera_pixels)
 
-x_cam1_pix_to_motor2_steps = 7     # How many motor steps on motor 2 does a 1 pixel x-shift on camera 1 correspond to?
-x_cam1_pix_to_motor4_steps = 8     # etc.
-x_cam2_pix_to_motor2_steps = 75
-x_cam2_pix_to_motor4_steps = 27
+x_cam1_pix_to_motor2_steps = 13     # How many motor steps on motor 2 does a 1 pixel x-shift on camera 1 correspond to?
+x_cam1_pix_to_motor4_steps = 6.5   # etc.
+x_cam2_pix_to_motor2_steps = 21
+x_cam2_pix_to_motor4_steps = 11
 
+
+
+# ---------------------------------- No need to modify anything below this line -----------------------------------------------
 
 # Look at "matrix notes.nb" for the math behind these matrices
     # columns are motor numbers, rows are camera numbers for the non-inverted matrices
@@ -40,18 +43,29 @@ x_cam2_pix_to_motor4_steps = 27
     # Another way of looking at it is that these matrices change from the measurement vector basis into a more
     # natural eigenbasis, whose vectors are a linear combination of the measurement basis
 
-y_determinant = y_cam1_pix_to_motor1_steps*y_cam2_pix_to_motor3_steps - y_cam2_pix_to_motor1_steps*y_cam1_pix_to_motor3_steps
-Y_matrix = np.array([[y_cam2_pix_to_motor3_steps, -y_cam1_pix_to_motor3_steps],
-                     [-y_cam2_pix_to_motor1_steps, y_cam1_pix_to_motor1_steps]]) * (1/y_determinant)
-#noninverted_y_matrix = [[y_cam1_pix_to_motor1_steps, y_cam1_pix_to_motor3_steps],
-#                        [y_cam2_pix_to_motor1_steps, y_cam2_pix_to_motor3_steps]]
+ay = 1/y_cam1_pix_to_motor1_steps
+by = 1/y_cam1_pix_to_motor3_steps
+cy = 1/y_cam2_pix_to_motor1_steps
+dy = 1/y_cam2_pix_to_motor3_steps
+
+ax = 1/x_cam1_pix_to_motor2_steps
+bx = 1/x_cam1_pix_to_motor4_steps
+cx = 1/x_cam2_pix_to_motor2_steps
+dx = 1/x_cam2_pix_to_motor4_steps
+
+y_determinant = ay*dy - by*cy
+x_determinant = ax*dx - bx*cx
+
+if (y_determinant == 0) or (x_determinant == 0):
+    raise Exception("One of the determinants is zeros, so that matrix is not invertible")
 
 
-x_determinant = x_cam1_pix_to_motor2_steps*x_cam2_pix_to_motor4_steps - x_cam2_pix_to_motor2_steps*x_cam1_pix_to_motor4_steps
-X_matrix = np.array([[x_cam2_pix_to_motor4_steps, -x_cam1_pix_to_motor4_steps],
-                     [-x_cam2_pix_to_motor2_steps, x_cam1_pix_to_motor2_steps]]) * (1/x_determinant)
-#noninverted_x_matrix = [[x_cam1_pix_to_motor2_steps, x_cam1_pix_to_motor4_steps],
-#                        [x_cam2_pix_to_motor2_steps, x_cam2_pix_to_motor4_steps]]
+Y_matrix = np.array([[dy, -by], [-cy, ay]]) * (1/y_determinant)
+#noninverted_Y_matrix = [[ay, by],[cy, dy]] # just for reference
+
+
+X_matrix = np.array([[dx, -bx], [-cx, ax]]) * (1/x_determinant)
+#noninverted_X_matrix = [[ax, bx],[cx, dx]] # just for reference
 
 if __name__ == "__main__":
     print("Wrong file: This file stores setup values for other files to use")
