@@ -35,7 +35,7 @@ mass_center_tracker1 = []
 mass_center_tracker2 = []
 stored_start_end_imgs = []
 save_img = True
-scan_time = 15
+scan_time = 35
 
 # -----------------Callback things-----------------------
 
@@ -73,6 +73,11 @@ def FrameHook(info, data):
     img[img < np.max(img)*.25] = 0 # set everything less than average to 0
     center_mass = center_of_mass(img)
 
+    if False:
+        plt.imshow(img)
+        plt.title("image from framehook after processing, with max " + str(np.max(img)))
+        plt.show()
+
     if np.isnan(center_mass).any(): # if there isn't any findable center of mass, stop the program
         print("No center of mass found: is the beam on the camera?")
         import os
@@ -107,9 +112,9 @@ if (cam_dll.SSClassicUSB_SetSensorFrequency(cam_num, 24) == -1): # can be 1, 24,
 res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
 if (res_response != 1):
     raise Exception("Resolution setting didn't work:", res_response)
-if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 15) == -1): # multiply the number by 50 um to get exposure time, max 15
+if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, exposure_choice) == -1): # multiply the number by 50 um to get exposure time, max 15
     raise Exception("Exposure time setting failed")
-if (cam_dll.SSClassicUSB_SetGains(cam_num,1,1,8) != 1): # gain is 2^((num-8)/8) : gain goes .125x -> 8x
+if (cam_dll.SSClassicUSB_SetGains(cam_num,1,1,gain_choice) != 1): # gain is 2^((num-8)/8) : gain goes .125x -> 8x
     raise Exception("Gain setting failed")              # Despite what documentation says, third value (not first) is controlling one
 cbhook = FUNC_PROTOTYPE(FrameHook)
 if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
@@ -153,7 +158,8 @@ from pylablib.devices import Newport
 with Newport.Picomotor8742() as nwpt:
     nwpt.move_by(mot_num, num_steps)
     nwpt.wait_move(axis=mot_num)
-
+curr_img_center = (0,0)
+time.sleep(1)
 
 delay_var = True
 # ---------- Find new average center -----------t_end = time.time() + 3

@@ -133,10 +133,8 @@ def FrameHook(info, data):
         plt.show()
     bitmap = np.where(beam_region > 0, 1, 0) # 1 for pixels not thresholded, 0 for pixels that were
 
-    if np.average(np.average(bitmap)) < .4: # if less than 70% the pixels in region are not thresholded, no beam on image
+    if np.average(np.average(bitmap)) < .4: # if less than x% the pixels in region are not thresholded, no beam on image
         print("dark frame in camera", cam_num, "- max intensity is", np.max(img))
-        plt.imshow(beam_region)
-        plt.show()
         global images_dark_counter
         images_dark_counter += 1
         return # This means that the center of mass isn't surrounded by bright pixels
@@ -232,8 +230,10 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
         res_response = cam_dll.SSClassicUSB_SetCustomizedResolution(cam_num, height, width, bin_choice, 0)
         if (res_response != 1):
             raise Exception("Resolution setting didn't work:", res_response)
-        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, 4) == -1): # multiply the number by 50 um to get exposure time, max 15
+        if (cam_dll.SSClassicUSB_SetExposureTime(cam_num, exposure_choice) == -1): # multiply the number by 50 um to get exposure time, max 15
             raise Exception("Exposure time setting failed")
+        if (cam_dll.SSClassicUSB_SetGains(cam_num,1,1,gain_choice) != 1): # gain is 2^((num-8)/8) : gain goes .125x -> 8x
+            raise Exception("Gain setting failed")              # Despite what documentation says, third value (not first) is controlling one
 
     if (cam_dll.SSClassicUSB_InstallFrameHooker(1, cbhook) == -1): # 1 is RAW, 2 is BMP
         raise Exception("Frame hooker start failed")
@@ -346,6 +346,8 @@ if __name__ == "__main__":
                 nwpt.move_by(x2_axis, x_step_num2)
                 while (nwpt.is_moving(axis=x2_axis)):
                     time.sleep(sleep_time)
+            
+            time.sleep(sleep_time)
         
         time_elapsed = time.time() - t_start
         curr_img_center_1 = (0,0) # now that we've moved the motor, we should retake any images stored
@@ -414,8 +416,12 @@ if __name__ == "__main__":
         plt.legend(loc="upper right")
         plt.show()
 
-    # FOR CALIBRATING PI - this is set up to not save any data, but show x and y errors on both cameras only
+    # FOR CALIBRATING PI - but shows x and y errors on both cameras only, because that's what we use for tuning
     if True:
+        import datetime
+        import csv
+        from math import sqrt
+
         if (len(time_steps_2) == 0):
             raise Exception("camera two never took images")
         while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
@@ -428,17 +434,29 @@ if __name__ == "__main__":
 
         y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
         y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
+        tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
+        tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
 
-        fig, ax = plt.subplots((2,2))
+        # --- Save the error data! I want to make figures from this later! ---
+        csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_PI_testing.csv'
+        with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
+            writer = csv.writer(f)
+            names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
 
-        ax[0,0].plot(time_steps_1, y_vals1, '-.b', label="y axis camera 1")
-        ax[0,0].title("Y axis, Cam 1")
-        ax[0,1].plot(time_steps_1, x_vals1, '-.r', label="x axis camera 1")
-        ax[0,1].title("X axis, Cam 1")
-        ax[1,0].plot(time_steps_2, y_vals2, '-.r', label="y axis camera 2")
-        ax[1,0].title("Y axis, Cam 2")
-        ax[1,1].plot(time_steps_2, x_vals2, '-.r', label="x axis camera 2")
-        ax[1,1].title("X axis, Cam 2")
+            writer.writerows(names)
+            writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
+        print("csv name:", csv_name)
 
-        fig.title("Total error for cameras 1,2 over time={:.2f}".format(time_elapsed))
+        fig, ax = plt.subplots(2,2)
+
+        tstart = min(time_steps_1[0],time_steps_2[0])
+        ax[0,0].plot(np.array(time_steps_1)-tstart, y_vals1, '-.b', label="y axis camera 1")
+        ax[0,0].set_title("Y axis, Cam 1")
+        ax[0,1].plot(np.array(time_steps_1)-tstart, x_vals1, '-.r', label="x axis camera 1")
+        ax[0,1].set_title("X axis, Cam 1")
+        ax[1,0].plot(np.array(time_steps_2)-tstart, y_vals2, '-.b', label="y axis camera 2")
+        ax[1,0].set_title("Y axis, Cam 2")
+        ax[1,1].plot(np.array(time_steps_2)-tstart, x_vals2, '-.r', label="x axis camera 2")
+        ax[1,1].set_title("X axis, Cam 2")
+
         plt.show()
