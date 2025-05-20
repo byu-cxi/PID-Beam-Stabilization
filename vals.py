@@ -22,15 +22,15 @@ exposure_choice = 4 # multiply the number by 50 um to get exposure time, max 15
     # Code doesn't break if this isn't true, but it becomes a bit less efficient
 # Intuitively,  (Picomotor steps / pixel change) = these values
 # 1 is upstream, 2 is downstream. motorX where X is the port number
-y_cam1_pix_to_motor1_steps = -19.4  # How many motor steps on motor 1 does a 1 pixel y-shift on camera 1 correspond to?
-y_cam1_pix_to_motor3_steps = -24.9  # etc.
-y_cam2_pix_to_motor1_steps = -13
-y_cam2_pix_to_motor3_steps = -20    # These numbers have units of (motor_steps / camera_pixels)
+y_cam1_pix_to_motor1_steps = -23.5  # How many motor steps on motor 1 does a 1 pixel y-shift on camera 1 correspond to?
+y_cam1_pix_to_motor3_steps = -20.5  # etc.
+y_cam2_pix_to_motor1_steps = -17.7
+y_cam2_pix_to_motor3_steps = -17.7  # These numbers have units of (motor_steps / camera_pixels)
 
-x_cam1_pix_to_motor2_steps = 14.2   # How many motor steps on motor 2 does a 1 pixel x-shift on camera 1 correspond to?
-x_cam1_pix_to_motor4_steps = 12.9   # etc.
-x_cam2_pix_to_motor2_steps = 13
-x_cam2_pix_to_motor4_steps = 11
+x_cam1_pix_to_motor2_steps = 11.2  # How many motor steps on motor 2 does a 1 pixel x-shift on camera 1 correspond to?
+x_cam1_pix_to_motor4_steps = 11.7  # etc.
+x_cam2_pix_to_motor2_steps = 10.5
+x_cam2_pix_to_motor4_steps = 10.5
 
 
 

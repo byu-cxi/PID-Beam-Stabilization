@@ -29,14 +29,22 @@ user32 = ctypes.windll.user32
 cam_dll = ctypes.cdll.LoadLibrary(dll_path)
 c_int = ctypes.c_int
 
+
+n = 20                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
+
+y1_axis = 1                 # What port on the motor controller box goes with what axis?
+x1_axis = 2                 # The important part is not mixing up the X and Y axes
+y2_axis = 3                 # My convention is that 1&2 go to the upstream motors, 3&4 to downstream: However, this is not essential
+x2_axis = 4
+
+
+
 baseline_center_1 = (0,0)     # will be set on the first image. This is the location the program tries to move toward
 baseline_center_2 = (0,0)
 baseline_not_set_1 = True
 baseline_not_set_2 = True
 curr_img_center_1 = (0,0)   # this is the current location of the center-of-mass of the most recent image
 curr_img_center_2 = (0,0)   # It is used to pass data from the callback function into the main code
-
-n = 20                      # int > 1 - used to control how many time steps back the Integral can see in the PID controller
 
 images_received_counter = 0   # These are for program tracking only, not for program functionality
 images_processed_counter = 0
@@ -287,8 +295,7 @@ if __name__ == "__main__":
                 or np.isnan(curr_img_center_2[0]) or np.isnan(curr_img_center_2[1])): # center of mass gives NaN when given array of 0's
                 raise Exception("No signal detected: is the beam on the camera?")
 
-
-            y_step_num1 = 0
+            y_step_num1 = 0 # Probably don't need to set these to 0, but it can't hurt, and might prevent weird bugs in future
             x_step_num1 = 0
             y_step_num2 = 0
             x_step_num2 = 0
@@ -320,32 +327,31 @@ if __name__ == "__main__":
 
             # Note: in the docs, "device" refers to the controller board, not the motor
             # 1 is upstream, 2 is downstream
-            min_move = 2
-
-            y1_axis = 1
-            x1_axis = 2
-            y2_axis = 3
-            x2_axis = 4
+            min_move = 2 # If PID says to move less than min_move steps, it's too small of a change to worry about, so it's skipped
 
             #if (max(np.abs([x_step_num1,x_step_num2,y_step_num1,y_step_num2])) != 0):
                 #breakpoint()
 
-            if abs(y_step_num1) >= min_move:
-                nwpt.move_by(y1_axis, y_step_num1) # 1 for Y, 2 for X
-                while (nwpt.is_moving(axis=y1_axis)):     # yes I could use the nwpt.wait_move() function
-                    time.sleep(sleep_time)                     # but in the pylablib source code it does exactly this 
-            if abs(x_step_num1) >= min_move:                   # sequence, except sleeps for .01 instead of .001 seconds
-                nwpt.move_by(x1_axis, x_step_num1)             # and the higher precision can't hurt
-                while (nwpt.is_moving(axis=x1_axis)):
-                    time.sleep(sleep_time)
-            if abs(y_step_num2) >= min_move:
-                nwpt.move_by(y2_axis, y_step_num2)
-                while (nwpt.is_moving(axis=y2_axis)):
-                    time.sleep(sleep_time)
-            if abs(x_step_num2) >= min_move:
-                nwpt.move_by(x2_axis, x_step_num2)
-                while (nwpt.is_moving(axis=x2_axis)):
-                    time.sleep(sleep_time)
+            try:
+                if abs(y_step_num1) >= min_move:
+                    nwpt.move_by(y1_axis, y_step_num1) # 1 for Y, 2 for X
+                    while (nwpt.is_moving(axis=y1_axis)):     # yes I could use the nwpt.wait_move() function
+                        time.sleep(sleep_time)                     # but in the pylablib source code it does exactly this 
+                if abs(x_step_num1) >= min_move:                   # sequence, except sleeps for .01 instead of .001 seconds
+                    nwpt.move_by(x1_axis, x_step_num1)             # and the higher precision can't hurt
+                    while (nwpt.is_moving(axis=x1_axis)):
+                        time.sleep(sleep_time)
+                if abs(y_step_num2) >= min_move:
+                    nwpt.move_by(y2_axis, y_step_num2)
+                    while (nwpt.is_moving(axis=y2_axis)):
+                        time.sleep(sleep_time)
+                if abs(x_step_num2) >= min_move:
+                    nwpt.move_by(x2_axis, x_step_num2)
+                    while (nwpt.is_moving(axis=x2_axis)):
+                        time.sleep(sleep_time)
+            except:
+                print("----- Motors disconnected -----")
+                continue_loop = False
             
             time.sleep(sleep_time)
         

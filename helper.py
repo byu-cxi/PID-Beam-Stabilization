@@ -22,8 +22,8 @@ def AddCrossHairs(img, point):
 def PID(axis, error_tracker, n, scaler=1):
     final_elements = np.array(error_tracker).transpose()[axis, -n:] # array of n elements
 
-    # look up Ziegler-Nichols method if these need to be changed
-    P = scaler * .65         # adjust this until you see oscillations after move, then divide by 2
+    # look up Ziegler-Nichols method if these need to be changed  (https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=9013)
+    P = scaler * .65        # adjust this until you see oscillations after move, then divide by 2
     I = scaler * .3 / n      # adjust this to reduce oscillations, and change n to somewhat large value
     D = scaler * 0           # Not going to include D because papers said that it wasn't necessary. Can be added in if you want
                                         # Just be careful of timing: changing the frame rate will require changing D

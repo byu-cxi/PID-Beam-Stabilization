@@ -54,3 +54,16 @@ x_cam2_pix_to_motor2_steps = 13
 x_cam2_pix_to_motor4_steps = 11
 """
 
+# ---- Motors 2&3 (cam1 close but not at focus (downstream), cam2 at focus, mir1 upstream, mir2 downstream)
+# ---- SVD singular values: Y(292,9.73), X(503,5.47)
+"""
+y_cam1_pix_to_motor1_steps = -23.5  # How many motor steps on motor 1 does a 1 pixel y-shift on camera 1 correspond to?
+y_cam1_pix_to_motor3_steps = -20.5  # etc.
+y_cam2_pix_to_motor1_steps = -17.7
+y_cam2_pix_to_motor3_steps = -17.7  # These numbers have units of (motor_steps / camera_pixels)
+
+x_cam1_pix_to_motor2_steps = 11.2  # How many motor steps on motor 2 does a 1 pixel x-shift on camera 1 correspond to?
+x_cam1_pix_to_motor4_steps = 11.7  # etc.
+x_cam2_pix_to_motor2_steps = 10.5
+x_cam2_pix_to_motor4_steps = 10.5
+"""
