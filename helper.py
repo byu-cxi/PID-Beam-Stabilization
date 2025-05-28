@@ -76,6 +76,14 @@ def SleepModifier(min_sleep):
     yield
     winmm.timeEndPeriod(min_sleep)
 
+from scipy.stats.mstats import winsorize
+def find_winsored_average(mass_center_tracker):
+    mass_center_tracker = np.array(mass_center_tracker)
+    average0 = np.array(winsorize(mass_center_tracker[:,0],limits=[.1,.1])).mean()
+    average1 = np.array(winsorize(mass_center_tracker[:,1],limits=[.1,.1])).mean()
+    average_x_y = np.array([average0, average1])
+
+    return average_x_y
 
 
 

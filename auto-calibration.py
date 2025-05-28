@@ -151,7 +151,8 @@ while time.time() < t_end:
 temp = np.copy(stored_start_end_imgs)
 
 # ---------- Get ready to get info from second location ----------
-average_x_y_initial = np.array(mass_center_tracker1).mean(axis=0)
+#average_x_y_initial = np.array(mass_center_tracker1).mean(axis=0) # This is without winsoring
+average_x_y_initial = find_winsored_average(mass_center_tracker1)
 print("initial location =", average_x_y_initial)
 
 from pylablib.devices import Newport
@@ -188,7 +189,8 @@ cam_dll.SSClassicUSB_StopCameraEngine() # cannot access information in data_ptr 
 cam_dll.SSClassicUSB_UnInitDevice()
 
 # ---------- print required information ----------
-average_x_y_final = np.array(mass_center_tracker2).mean(axis=0)
+#average_x_y_final = np.array(mass_center_tracker2).mean(axis=0) # this is without winsorizing
+average_x_y_final = find_winsored_average(mass_center_tracker2)
 print("average final =", average_x_y_final)
 
 difference = average_x_y_final - average_x_y_initial

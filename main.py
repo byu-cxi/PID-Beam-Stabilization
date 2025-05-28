@@ -318,8 +318,11 @@ if __name__ == "__main__":
                     # Look at "vals.py" and "matrix notes.nb" for how this works
                 y_step_num1, y_step_num2 = (Y_matrix@np.array([y_pixel_shift_1, y_pixel_shift_2])).astype(int)
                 x_step_num1, x_step_num2 = (X_matrix@np.array([x_pixel_shift_1, x_pixel_shift_2])).astype(int)
-                print("numbers of steps are:",y_step_num1, y_step_num2,x_step_num1, x_step_num2)
-            
+                print("numbers of steps are:", y_step_num1, x_step_num1, y_step_num2, x_step_num2)
+
+                if False: # turn this on when testing if the code can figure out what motor was moved
+                    breakpoint()
+                    y_step_num1, x_step_num1, y_step_num2, x_step_num2 = (0,0,0,0)
             else:
                 time.sleep(sleep_time)
                 continue
@@ -327,7 +330,7 @@ if __name__ == "__main__":
 
             # Note: in the docs, "device" refers to the controller board, not the motor
             # 1 is upstream, 2 is downstream
-            min_move = 2 # If PID says to move less than min_move steps, it's too small of a change to worry about, so it's skipped
+            min_move = 10 # If PID says to move less than min_move steps, it's too small of a change to worry about, so it's skipped
 
             #if (max(np.abs([x_step_num1,x_step_num2,y_step_num1,y_step_num2])) != 0):
                 #breakpoint()
@@ -350,7 +353,9 @@ if __name__ == "__main__":
                     while (nwpt.is_moving(axis=x2_axis)):
                         time.sleep(sleep_time)
             except:
+                print("-------------------------------")
                 print("----- Motors disconnected -----")
+                print("-------------------------------")
                 continue_loop = False
             
             time.sleep(sleep_time)
