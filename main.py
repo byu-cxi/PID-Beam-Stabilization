@@ -51,8 +51,9 @@ images_processed_counter = 0
 images_failed_counter = 0  # number of frames that admitted that they were bad
 images_dark_counter = 0
 
-error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
-error_tracker_2 = [[0.,0.]]*n
+cam_error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
+cam_error_tracker_2 = [[0.,0.]]*n
+mot_step_tracker = []
 
     
 
@@ -261,37 +262,44 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
 
 
 
-def SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2):
+def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2):
     from math import sqrt
     import csv 
     import datetime
 
     if (len(time_steps_2) == 0):
             raise Exception("camera two never took images")
-    while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
-        error_tracker_2.append([0,0])
+    while (len(cam_error_tracker_1) > len(cam_error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
+        cam_error_tracker_2.append([0,0])
         time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
-    while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
-        error_tracker_1.append([0,0])
+    while (len(cam_error_tracker_2) > len(cam_error_tracker_1)): # Same as above
+        cam_error_tracker_1.append([0,0])
         time_steps_1.append(None)
 
 
-    y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
-    y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
-    tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
-    tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
+    y_cam_vals1, x_cam_vals1 = np.array(cam_error_tracker_1)[n:].transpose()
+    y_cam_vals2, x_cam_vals2 = np.array(cam_error_tracker_2)[n:].transpose()
+    tot_cam_err1 = [sqrt(x**2 + y**2) for x,y in cam_error_tracker_1[n:]] # first n are initialized with zeros
+    tot_cam_err2 = [sqrt(x**2 + y**2) for x,y in cam_error_tracker_2[n:]]
+
+    y_mot_shift_1, x_mot_shift_1, y_mot_shift_2, x_mot_shift_2 = np.array(mot_step_tracker).transpose()
+        # This is the amount of shift the PID controller recommends. If there is a dead zone, this does not record that
 
     # --- Save the error data! I want to make figures from this later! ---
     csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_PI_testing.csv'
     with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
         writer = csv.writer(f)
-        names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
+        names = [["time_steps1","y_cam_err1","x_cam_err1","tot_cam_err1","y_mot_steps1","x_mot_steps1" 
+                  "time_steps2","y_cam_err2","x_cam_err2","tot_cam_err2","y_mot_steps2","x_mot_steps2"]]
 
         writer.writerows(names)
-        writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
+        writer.writerows(np.transpose(
+            [time_steps_1, y_cam_vals1, x_cam_vals1, tot_cam_err1, y_mot_shift_1, x_mot_shift_1,
+             time_steps_2, y_cam_vals2, x_cam_vals2, tot_cam_err2, y_mot_shift_2, x_mot_shift_2]))
     print("CSV name:", csv_name)
 
-    return [y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2]
+    return [y_cam_vals1, x_cam_vals1, tot_cam_err1, y_mot_shift_1, x_mot_shift_1,
+            y_cam_vals2, x_cam_vals2, tot_cam_err2, y_mot_shift_2, x_mot_shift_2]
 
 
 
@@ -342,15 +350,17 @@ if __name__ == "__main__":
                 y_err1, x_err1 = TupleSubtract(curr_img_center_1, baseline_center_1) # caluculate error in pixels
                 y_err2, x_err2 = TupleSubtract(curr_img_center_2, baseline_center_2) # caluculate error in pixels
                 images_processed_counter += 2
-                error_tracker_1.append([y_err1, x_err1]) # so we can plot error later
-                error_tracker_2.append([y_err2, x_err2])
+                cam_error_tracker_1.append([y_err1, x_err1]) # so we can plot error later
+                cam_error_tracker_2.append([y_err2, x_err2])
                 time_steps_1.append(time.time())
                 time_steps_2.append(time.time())
 
-                y_pixel_shift_1 = PID(0, error_tracker_1, n) # 0 for Y, 1 for X
-                x_pixel_shift_1 = PID(1, error_tracker_1, n) # This returns ideal number of pixels to shift by
-                y_pixel_shift_2 = PID(0, error_tracker_2, n) # n is how far to look for the I term
-                x_pixel_shift_2 = PID(1, error_tracker_2, n) # the PID function is in helper.py
+                y_pixel_shift_1 = PID(0, cam_error_tracker_1, n) # 0 for Y, 1 for X
+                x_pixel_shift_1 = PID(1, cam_error_tracker_1, n) # This returns ideal number of pixels to shift by
+                y_pixel_shift_2 = PID(0, cam_error_tracker_2, n) # n is how far to look for the I term
+                x_pixel_shift_2 = PID(1, cam_error_tracker_2, n) # the PID function is in helper.py
+
+                mot_step_tracker.append([y_pixel_shift_1, x_pixel_shift_1, y_pixel_shift_2, x_pixel_shift_2])
 
                 # calculate how many motor steps will move the beam by that amount of pixels
                     # Look at "vals.py" and "matrix notes.nb" for how this works
@@ -411,7 +421,7 @@ if __name__ == "__main__":
     # FOR ONE CAMERA - plot error over time for camera 1: x, y, and total
     if False:
         from math import sqrt
-        error_tracker = error_tracker_1 # Looking at camera 1
+        error_tracker = cam_error_tracker_1 # Looking at camera 1
         time_steps = time_steps_1
         y_vals, x_vals = np.array(error_tracker)[n:].transpose() # TODO save this data so I can look at it later
         tot_err = [sqrt(x**2 + y**2) for x,y in error_tracker[n:]]
@@ -424,8 +434,8 @@ if __name__ == "__main__":
 
     # FOR MAIN RUNS - plot total error for both cameras, and save all error data to csv
     if False:
-        return_list = SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2)
-        y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2 = return_list
+        return_list = SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2)
+        y_vals1, x_vals1, tot_err1, y_steps1, x_steps1, y_vals2, x_vals2, tot_err2, y_steps2, x_steps2 = return_list
 
         print("length of cam 2 images is " + str(len(time_steps_2)))
         print("length of cam 1 images is " + str(len(time_steps_1)))
@@ -440,9 +450,8 @@ if __name__ == "__main__":
     # FOR CALIBRATING PI - but shows x and y errors on both cameras only, because that's what we use for tuning
     if True:
         
-        return_list = SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2)
-        y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2 = return_list
-
+        return_list = SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2)
+        y_vals1, x_vals1, tot_err1, y_steps1, x_steps1, y_vals2, x_vals2, tot_err2, y_steps2, x_steps2 = return_list
 
         fig, ax = plt.subplots(2,2)
 
