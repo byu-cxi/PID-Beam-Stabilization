@@ -407,10 +407,10 @@ if __name__ == "__main__":
                 continue_loop = False
             
             time.sleep(sleep_time)
+            curr_img_center_1 = (0,0) # now that we've moved the motor, we should retake any images stored
+            curr_img_center_2 = (0,0)
         
         time_elapsed = time.time() - t_start
-        curr_img_center_1 = (0,0) # now that we've moved the motor, we should retake any images stored
-        curr_img_center_2 = (0,0)
 
 
     # ----------------- Shut down camera ---------------------
