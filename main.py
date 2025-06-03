@@ -30,7 +30,7 @@ cam_dll = ctypes.cdll.LoadLibrary(dll_path)
 c_int = ctypes.c_int
 
 
-n = 20                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
+n = 40                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
 
 y1_axis = 1                 # What port on the motor controller box goes with what axis?
 x1_axis = 2                 # The important part is not mixing up the X and Y axes
@@ -261,6 +261,44 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
 
 
 
+def SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2):
+    from math import sqrt
+    import csv 
+    import datetime
+
+    if (len(time_steps_2) == 0):
+            raise Exception("camera two never took images")
+    while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
+        error_tracker_2.append([0,0])
+        time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
+    while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
+        error_tracker_1.append([0,0])
+        time_steps_1.append(None)
+
+
+    y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
+    y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
+    tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
+    tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
+
+    # --- Save the error data! I want to make figures from this later! ---
+    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_PI_testing.csv'
+    with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
+        writer = csv.writer(f)
+        names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
+
+        writer.writerows(names)
+        writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
+    print("CSV name:", csv_name)
+
+    return [y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2]
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     # ---------- run loop! ----------
@@ -282,7 +320,7 @@ if __name__ == "__main__":
     print("Starting stabilization loop now (Ctrl-C to stop)")
     continue_loop = True # will be set to false on ctrl-c
     sleep_time = .010 # can shrink this down to .001 seconds, but this should be plenty: The smaller this is, the more energy the computer uses
-    with SleepModifier(sleep_time), CameraContext(cam_dll), Newport.Picomotor8742() as nwpt: # TODO replace
+    with SleepModifier(sleep_time), CameraContext(cam_dll), Newport.Picomotor8742() as nwpt:
         t_start = time.time()
         while continue_loop: # ctrl+c will make this false
             i += 1
@@ -330,7 +368,7 @@ if __name__ == "__main__":
 
             # Note: in the docs, "device" refers to the controller board, not the motor
             # 1 is upstream, 2 is downstream
-            min_move = 10 # If PID says to move less than min_move steps, it's too small of a change to worry about, so it's skipped
+            min_move = 0 # If PID says to move less than min_move steps, it's too small of a change to worry about, so it's skipped
 
             #if (max(np.abs([x_step_num1,x_step_num2,y_step_num1,y_step_num2])) != 0):
                 #breakpoint()
@@ -386,39 +424,11 @@ if __name__ == "__main__":
 
     # FOR MAIN RUNS - plot total error for both cameras, and save all error data to csv
     if False:
-        from math import sqrt
-        import csv 
-        import datetime
-        import os
+        return_list = SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2)
+        y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2 = return_list
 
         print("length of cam 2 images is " + str(len(time_steps_2)))
         print("length of cam 1 images is " + str(len(time_steps_1)))
-
-        if (len(time_steps_2) == 0):
-            raise Exception("camera two never took images")
-
-        while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
-            error_tracker_2.append([0,0])
-            time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
-        
-        while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
-            error_tracker_2.append([0,0])
-            time_steps_2.append(None)
-
-
-        y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
-        y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
-        tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
-        tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
-
-        # --- Save the error data! I want to make figures from this later! ---
-        csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + ' 2_cam_stabilization.csv'
-        with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
-            writer = csv.writer(f)
-            names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
-
-            writer.writerows(names)
-            writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
 
         plt.plot(time_steps_1, tot_err1, '-.b', label="Camera 1 net error")
         plt.plot(time_steps_2, tot_err2, '-.r', label="Camera 2 net error")
@@ -429,34 +439,10 @@ if __name__ == "__main__":
 
     # FOR CALIBRATING PI - but shows x and y errors on both cameras only, because that's what we use for tuning
     if True:
-        import datetime
-        import csv
-        from math import sqrt
+        
+        return_list = SaveErrorToCSV(error_tracker_1, time_steps_1, error_tracker_2, time_steps_2)
+        y_vals1, x_vals1, y_vals2, x_vals2, tot_err1, tot_err2 = return_list
 
-        if (len(time_steps_2) == 0):
-            raise Exception("camera two never took images")
-        while (len(error_tracker_1) > len(error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
-            error_tracker_2.append([0,0])
-            time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
-        while (len(error_tracker_2) > len(error_tracker_1)): # Same as above
-            error_tracker_2.append([0,0])
-            time_steps_2.append(None)
-
-
-        y_vals1, x_vals1 = np.array(error_tracker_1)[n:].transpose()
-        y_vals2, x_vals2 = np.array(error_tracker_2)[n:].transpose()
-        tot_err1 = [sqrt(x**2 + y**2) for x,y in error_tracker_1[n:]] # first n are initialized with zeros
-        tot_err2 = [sqrt(x**2 + y**2) for x,y in error_tracker_2[n:]]
-
-        # --- Save the error data! I want to make figures from this later! ---
-        csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_PI_testing.csv'
-        with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
-            writer = csv.writer(f)
-            names = [["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]]
-
-            writer.writerows(names)
-            writer.writerows(np.transpose([time_steps_1,y_vals1,x_vals1,tot_err1, time_steps_2,y_vals2,x_vals2,tot_err2]))
-        print("csv name:", csv_name)
 
         fig, ax = plt.subplots(2,2)
 
