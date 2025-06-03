@@ -360,13 +360,13 @@ if __name__ == "__main__":
                 y_pixel_shift_2 = PID(0, cam_error_tracker_2, n) # n is how far to look for the I term
                 x_pixel_shift_2 = PID(1, cam_error_tracker_2, n) # the PID function is in helper.py
 
-                mot_step_tracker.append([y_pixel_shift_1, x_pixel_shift_1, y_pixel_shift_2, x_pixel_shift_2])
-
                 # calculate how many motor steps will move the beam by that amount of pixels
                     # Look at "vals.py" and "matrix notes.nb" for how this works
                 y_step_num1, y_step_num2 = (Y_matrix@np.array([y_pixel_shift_1, y_pixel_shift_2])).astype(int)
                 x_step_num1, x_step_num2 = (X_matrix@np.array([x_pixel_shift_1, x_pixel_shift_2])).astype(int)
                 print("numbers of steps are:", y_step_num1, x_step_num1, y_step_num2, x_step_num2)
+
+                mot_step_tracker.append([y_step_num1, x_step_num1, y_step_num2, x_step_num2])
 
                 if False: # turn this on when testing if the code can figure out what motor was moved
                     breakpoint()
