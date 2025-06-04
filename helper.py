@@ -23,17 +23,23 @@ def PID(axis, error_tracker, n, scaler=1):
     final_elements = np.array(error_tracker).transpose()[axis, -n:] # array of n elements
 
     # look up Ziegler-Nichols method if these need to be changed  (https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=9013)
-    P = scaler * .65        # adjust this until you see oscillations after move, then divide by 2
-    I = scaler * .3 / n      # adjust this to reduce oscillations, and change n to somewhat large value
+    P = scaler * 1.2         # adjust this until you see oscillations after move, then divide by 2
+    I = scaler * .8 / n      # adjust this to reduce oscillations, and change n to somewhat large value
     D = scaler * 0           # Not going to include D because papers said that it wasn't necessary. Can be added in if you want
                                         # Just be careful of timing: changing the frame rate will require changing D
                                         # This makes sense: the motors stop when they are done moving, so the D shouldn't matter?
+                                        # Also makes the system more sensitive to noise, which is a problem even without D
 
     P_contribution = - P * final_elements[n-1]
     I_contribution = - I * np.sum(final_elements)
     D_contribution = - D * (final_elements[n-1] - final_elements[n-2])
 
-    return P_contribution + I_contribution + D_contribution
+    move_num = P_contribution + I_contribution + D_contribution
+    reduction_param = 3
+    if move_num >=0:
+        return max(0, move_num - reduction_param)
+    else:
+        return min(0, move_num + reduction_param)
 
 
 

@@ -30,7 +30,7 @@ cam_dll = ctypes.cdll.LoadLibrary(dll_path)
 c_int = ctypes.c_int
 
 
-n = 40                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
+n = 20                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
 
 y1_axis = 1                 # What port on the motor controller box goes with what axis?
 x1_axis = 2                 # The important part is not mixing up the X and Y axes
@@ -286,7 +286,7 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
         # This is the amount of shift the PID controller recommends. If there is a dead zone, this does not record that
 
     # --- Save the error data! I want to make figures from this later! ---
-    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_PI_testing.csv'
+    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_noise_correction.csv'
     with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
         writer = csv.writer(f)
         names = [["time_steps1","y_cam_err1","x_cam_err1","tot_cam_err1","y_mot_steps1","x_mot_steps1" 
@@ -406,7 +406,7 @@ if __name__ == "__main__":
                 print("-------------------------------")
                 continue_loop = False
             
-            time.sleep(sleep_time)
+            time.sleep(sleep_time) # wait for it to stabilize
             curr_img_center_1 = (0,0) # now that we've moved the motor, we should retake any images stored
             curr_img_center_2 = (0,0)
         

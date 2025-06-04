@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import os
 
-csv_name = "2025-06-03 13-34-29_PI_testing.csv"
+csv_name = "2025-06-04 15-58-51_noise_correction.csv"
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
 arr1 = []
 arr2 = []
@@ -57,6 +57,8 @@ if True:  # This graph shows camera error vs motor steps over time
     ax[0].set_ylabel("Pixels")
     ax[0].legend(loc="upper right")#, fancybox=True, framealpha=1)
     ax[0].set_xlim(-.03*time_elapsed, 1.03*time_elapsed) # make graphs have same (asethetic) time length
+    ax[0].set_ylim(-1.5,1.5)
+    ax[0].axhline(0, color="black", linewidth=.5)
 
     ax[1].plot(arr1[:,ind_t], arr1[:,ind_m],'.-g', label="Motor steps 1")
     ax[1].plot(arr2[:,ind_t], arr2[:,ind_m],'.-', label="Motor steps 2")
@@ -66,7 +68,7 @@ if True:  # This graph shows camera error vs motor steps over time
     ax[1].set_ylabel("Number of Steps")
     ax[1].legend(loc="upper right")#, fancybox=True, framealpha=1)
     ax[1].set_xlim(-.03*time_elapsed, 1.03*time_elapsed)
-
+    ax[1].axhline(0, color="black", linewidth=.5)
 
     plt.tight_layout()
     plt.show()
