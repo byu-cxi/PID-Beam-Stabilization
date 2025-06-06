@@ -355,6 +355,7 @@ if __name__ == "__main__":
                 time_steps_1.append(time.time())
                 time_steps_2.append(time.time())
 
+                # TODO make the PID controller work on the motor steps, not number of pixels
                 y_pixel_shift_1 = PID(0, cam_error_tracker_1, n) # 0 for Y, 1 for X
                 x_pixel_shift_1 = PID(1, cam_error_tracker_1, n) # This returns ideal number of pixels to shift by
                 y_pixel_shift_2 = PID(0, cam_error_tracker_2, n) # n is how far to look for the I term
