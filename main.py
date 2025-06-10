@@ -53,6 +53,7 @@ images_dark_counter = 0
 
 cam_error_tracker_1 = [[0.,0.]]*n     # used to keep track of error over time. Initialized with extra zeros for PID reasons
 cam_error_tracker_2 = [[0.,0.]]*n
+mot_estimated_steps = []
 mot_step_tracker = []
 
     
@@ -356,6 +357,21 @@ if __name__ == "__main__":
                 time_steps_2.append(time.time())
 
                 # TODO make the PID controller work on the motor steps, not number of pixels
+
+                y_mot_shift_1, y_mot_shift_2 = Y_matrix@np.array([y_err1, y_err2]) # This is the number of steps off, without PI
+                x_mot_shift_1, x_mot_shift_2 = X_matrix@np.array([x_err1, x_err2])
+
+                new_estimated_steps = [y_mot_shift_1, x_mot_shift_1, y_mot_shift_2, x_mot_shift_2]
+                if mot_estimated_steps == []:
+                    mot_estimated_steps = np.array([[0.,0.,0.,0.]]*n)
+                mot_estimated_steps = np.vstack((mot_estimated_steps, new_estimated_steps))
+
+                y_step_num1 = PID(0, mot_estimated_steps, n)
+                x_step_num1 = PID(1, mot_estimated_steps, n)
+                y_step_num2 = PID(2, mot_estimated_steps, n)
+                x_step_num2 = PID(3, mot_estimated_steps, n)
+
+                """
                 y_pixel_shift_1 = PID(0, cam_error_tracker_1, n) # 0 for Y, 1 for X
                 x_pixel_shift_1 = PID(1, cam_error_tracker_1, n) # This returns ideal number of pixels to shift by
                 y_pixel_shift_2 = PID(0, cam_error_tracker_2, n) # n is how far to look for the I term
@@ -365,6 +381,9 @@ if __name__ == "__main__":
                     # Look at "vals.py" and "matrix notes.nb" for how this works
                 y_step_num1, y_step_num2 = (Y_matrix@np.array([y_pixel_shift_1, y_pixel_shift_2])).astype(int)
                 x_step_num1, x_step_num2 = (X_matrix@np.array([x_pixel_shift_1, x_pixel_shift_2])).astype(int)
+                """
+
+
                 print("numbers of steps are:", y_step_num1, x_step_num1, y_step_num2, x_step_num2)
 
                 mot_step_tracker.append([y_step_num1, x_step_num1, y_step_num2, x_step_num2])
