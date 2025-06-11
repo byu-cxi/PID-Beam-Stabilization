@@ -366,10 +366,10 @@ if __name__ == "__main__":
                     mot_estimated_steps = np.array([[0.,0.,0.,0.]]*n)
                 mot_estimated_steps = np.vstack((mot_estimated_steps, new_estimated_steps))
 
-                y_step_num1 = PID(0, mot_estimated_steps, n)
-                x_step_num1 = PID(1, mot_estimated_steps, n)
-                y_step_num2 = PID(2, mot_estimated_steps, n)
-                x_step_num2 = PID(3, mot_estimated_steps, n)
+                y_step_num1 = int(PID(0, mot_estimated_steps, n))
+                x_step_num1 = int(PID(1, mot_estimated_steps, n))
+                y_step_num2 = int(PID(2, mot_estimated_steps, n))
+                x_step_num2 = int(PID(3, mot_estimated_steps, n))
 
                 """
                 y_pixel_shift_1 = PID(0, cam_error_tracker_1, n) # 0 for Y, 1 for X
