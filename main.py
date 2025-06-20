@@ -286,7 +286,7 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
         # This is the amount of shift the PID controller recommends. If there is a dead zone, this does not record that
 
     # --- Save the error data! I want to make figures from this later! ---
-    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_noise_correction.csv'
+    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_time_gap.csv'
     with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
         writer = csv.writer(f)
         names = [["time_steps1","y_cam_err1","x_cam_err1","tot_cam_err1","y_mot_steps1","x_mot_steps1" 
@@ -369,7 +369,7 @@ if __name__ == "__main__":
                 mot_step_tracker.append([y_step_num1, x_step_num1, y_step_num2, x_step_num2])
 
                 if False: # turn this on when testing if the code can figure out what motor was moved
-                    breakpoint()
+                    #breakpoint()
                     y_step_num1, x_step_num1, y_step_num2, x_step_num2 = (0,0,0,0)
             else:
                 time.sleep(sleep_time)
