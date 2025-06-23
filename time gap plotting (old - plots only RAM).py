@@ -4,8 +4,8 @@ import csv
 import os
 import datetime
 
-csv_name = "2025-06-23 12-10-20_time_gap.csv"
-ram_tsv = "logfile02.tsv"
+csv_name = "2025-06-23 10-15-41_time_gap.csv"
+ram_tsv = "logfile04.tsv"
 
 
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
@@ -23,20 +23,16 @@ with open(csv_file_path, 'r') as f:
     arr2 = np.array(arr2).astype(float) # "time_steps2","y_cam_err2","x_cam_err2","tot_cam_err2","y_mot_steps2","x_mot_steps2"
 
 
-tsv_file_path = os.path.join(os.getcwd(),'CSV','Python Resource Logs','log_file_tsvs',ram_tsv)
+tsv_file_path = os.path.join(os.getcwd(),'CSV','Memory Logs','log_file_tsvs',ram_tsv)
 ram_arr = []
 with open(tsv_file_path, 'r') as f:
     data = csv.reader(f,delimiter='\t')
     next(data) # first line is column description, not data
     for line in data:
         timestamp = datetime.datetime.strptime(line[0],'%m/%d/%Y %H:%M:%S.%f').timestamp()
-        if str.strip(line[1]) == '':
-            line[1] = 0
-        if str.strip(line[2]) == '':
-            line[2] = 0
-        ram_arr.append([timestamp,line[1],line[2]])
-    ram_arr = np.array(ram_arr).astype(float) # time, processor usage, free ram
-ram_arr[:,2] = ram_arr[:,2]*10**-6 # convert bytes -> MB
+        ram_arr.append([timestamp,line[1]])
+    ram_arr = np.array(ram_arr).astype(float) # "time","free ram"
+
 
 # --- Now that I have the data pulled out of the file, I can make graphs with it! (first index is time, second is data type)
 #           ["time_steps1","y_err1","x_err1","tot_err1","time_steps2","y_err2","x_err2","tot_err2"]
@@ -80,27 +76,14 @@ if True:  # This graph shows camera error vs motor steps over time
     #ax[0].set_ylim(-1.5,1.5)
     ax[0].axhline(0, color="black", linewidth=.5)
 
-    green = 'tab:green'
-    purple = 'tab:purple'
-
-    ax[1].plot(ram_arr[:,0], ram_arr[:,1],'.-', color=green, label="CPU usage")    
-    ax[1].set_ylabel("CPU usage", color=green)
+    ax[1].plot(ram_arr[:,0], ram_arr[:,1],'.-g', label="RAM usage")
+    ax[1].set_title("Amount of free RAM over time")
+    ax[1].set_xlabel("Time")
+    ax[1].set_ylabel("MB")
+    ax[1].legend(loc="lower right")#, fancybox=True, framealpha=1)
     ax[1].set_xlim(-.03*time_elapsed, 1.03*time_elapsed)
     ax[1].set_ylim(np.min(ram_arr[:,1]), np.max(ram_arr[:,1]))
-    ax[1].tick_params(axis='y', labelcolor=green)
-
-    ax12 = ax[1].twinx()
-
-    ax12.plot(ram_arr[:,0], ram_arr[:,2],'.-', color=purple, label="RAM usage")
-    ax12.set_ylim(np.min(ram_arr[:,2]), np.max(ram_arr[:,2]))
-    ax12.set_ylabel("Memory (MB)", color=purple)
-    ax12.tick_params(axis='y', labelcolor=purple)
-
-    ax[1].legend(loc="lower left")#, fancybox=True, framealpha=1)
-    ax12.legend(loc="lower right")#, fancybox=True, framealpha=1)
-    ax[1].set_title("Amount of used memory, processor time over time")
     ax[1].axhline(0, color="black", linewidth=.5)
-    ax[1].set_xlabel("Time")
 
     plt.tight_layout()
     plt.show()
