@@ -9,3 +9,6 @@ CSV/
 figures_produced/
 Beam_scan.gif
 beam noise recordings/
+/recons/stabilized*
+/recons/unstabilized*
+/recons/Correlated Images
