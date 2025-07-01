@@ -4,8 +4,8 @@ import csv
 import os
 import datetime
 
-csv_name = "2025-06-23 12-10-20_time_gap.csv"
-ram_tsv = "logfile02.tsv"
+csv_name = "2025-06-24 14-08-45_ptycho_stabilize.csv"
+ram_tsv = "logfile09.tsv"
 
 
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
@@ -83,8 +83,8 @@ if True:  # This graph shows camera error vs motor steps over time
     green = 'tab:green'
     purple = 'tab:purple'
 
-    ax[1].plot(ram_arr[:,0], ram_arr[:,1],'.-', color=green, label="CPU usage")    
-    ax[1].set_ylabel("CPU usage", color=green)
+    ax[1].plot(ram_arr[:,0], ram_arr[:,1],'.-', color=green, label="% CPU usage")    
+    ax[1].set_ylabel("% CPU usage", color=green)
     ax[1].set_xlim(-.03*time_elapsed, 1.03*time_elapsed)
     ax[1].set_ylim(np.min(ram_arr[:,1]), np.max(ram_arr[:,1]))
     ax[1].tick_params(axis='y', labelcolor=green)
@@ -98,7 +98,7 @@ if True:  # This graph shows camera error vs motor steps over time
 
     ax[1].legend(loc="lower left")#, fancybox=True, framealpha=1)
     ax12.legend(loc="lower right")#, fancybox=True, framealpha=1)
-    ax[1].set_title("Amount of used memory, processor time over time")
+    ax[1].set_title("Amount of used memory, processor usage over time")
     ax[1].axhline(0, color="black", linewidth=.5)
     ax[1].set_xlabel("Time")
 
