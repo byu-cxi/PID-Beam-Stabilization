@@ -3,23 +3,26 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 from pathlib import Path
 import os
-from PIL import Image as im
-
-out_name1 = "unstable2.tiff" # name that the output images are named
-out_name2 = "unstable3.tiff"
+import tifffile as ti
+out_name1 = "stable2.tiff" # name that the output images are named
+out_name2 = "stable3.tiff"
 
 psi = 'psi.tiff'
-im1 = im.open(Path(os.getcwd(), os.path.dirname(__file__), 'unstabilized2', psi))
-im2 = im.open(Path(os.getcwd(), os.path.dirname(__file__), 'unstabilized3', psi))
+im1 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), 'stabilized2', psi)))
+im2 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), 'stabilized3', psi)))
 
-breakpoint() # 
 
-im1 = np.array(im1, dtype='int32')
-im2 = np.array(im2, dtype='int32')
+# These images have high backgrounds, this will help fix problems that come from that
+im1 = im1 - np.average(im1)
+im2 = im2 - np.average(im2)
 
+
+
+# Crops image
 def CropImage(img,crop):
     return img[crop[0][0]:crop[0][1] , crop[1][0]:crop[1][1]]
 
+# Shows what region of the image will be cropped, given the coordinates
 def CropImageThenShow(img,crop):
     outlined_img = np.copy(img) # let's make a box around the cropped region
     mx = np.max(img) # used to draw the box lines on the graph
@@ -37,10 +40,15 @@ def CropImageThenShow(img,crop):
 
 
 
-
 # crop im1 to the desired region, and we'll crop im2 after cross-correlation
 # ((top,bottom),(left,right))
-top, vrad, left, hrad = (555, 165, 550, 165) #(300, 650, 350, 600) # unstabilized 2
+
+small_tester = (567, 20, 550, 20)
+entire_star = (300, 650, 350, 600) # unstabilized 2
+crisp_center = (555, 165, 550, 165)
+
+top, vrad, left, hrad = crisp_center
+
 im1_cropping = ((top,top+vrad),(left,left+hrad))
 
 
@@ -48,22 +56,22 @@ if False: # used for cropping down to desired region: shouldn't need to go on un
     CropImageThenShow(im1, im1_cropping)
     exit()
 
-orig_im1 = im1
-im1 = CropImage(im1,im1_cropping)
-
 
 # ------------------------------------------------------------------------------------------------------------------
 # Now that the images are extracted, and image 1 is cropped down to the region of interest, time to cross-correlate!
 
 print ("starting correlation")
-correlate_arr = sig.correlate2d(im2, im1, mode='valid')
-print ("finished correlation")
-
+correlate_arr = sig.correlate(im2, im1, method='fft')
 peak_index = np.unravel_index(correlate_arr.argmax(), correlate_arr.shape)
-print("Max correlation at", peak_index)
+dif = tuple(map(lambda x,y: x-y, peak_index, im2.shape))
+print ("finished correlation - shifting by", dif, "pixels")
 
+
+orig_im1 = im1
+im1 = CropImage(im1, im1_cropping)
 orig_im2 = im2
-im2 = CropImage(im2, ((peak_index[0], peak_index[0]+vrad), (peak_index[1], peak_index[1]+hrad)))
+im2 = CropImage(im2, ((top+dif[0],top+dif[0]+vrad), (left+dif[1], left+dif[1]+hrad)))
+
 
 if True: # Plot correlated images side by side
     f, ax = plt.subplots(1,2)
@@ -71,11 +79,8 @@ if True: # Plot correlated images side by side
     ax[1].imshow(im2)
     plt.show()
 
+# Save images as tiff images for FRC analysis
 if True:
-    out1 = im.fromarray(im1)
-    out2 = im.fromarray(im2)
-    out1.save(Path(os.getcwd(), os.path.dirname(__file__), 'Correlated Images', out_name1), 'TIFF')
-    out2.save(Path(os.getcwd(), os.path.dirname(__file__), 'Correlated Images', out_name2), 'TIFF')
-
-breakpoint()
+    ti.imwrite(Path(os.getcwd(), os.path.dirname(__file__), 'Correlated Images', out_name1), im1)
+    ti.imwrite(Path(os.getcwd(), os.path.dirname(__file__), 'Correlated Images', out_name2), im2)
 
