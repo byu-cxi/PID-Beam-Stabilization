@@ -4,8 +4,8 @@ import csv
 import os
 import datetime
 
-csv_name = "2025-06-24 14-08-45_ptycho_stabilize.csv"
-ram_tsv = "logfile09.tsv"
+csv_name = "2025-06-26 13-33-54_stabilized.csv"
+ram_tsv = "logfile13.tsv"
 
 
 csv_file_path = os.path.join(os.getcwd(),'CSV',csv_name)
@@ -69,6 +69,9 @@ if True:  # This graph shows camera error vs motor steps over time
 
     tstart = min(arr1[0,0], arr2[0,0])
 
+    left_time = .2*time_elapsed  # used to set the edges of the graph: default it -.03 -> 1.03 * time_elapsed
+    right_time = .45*time_elapsed    # Can be used to focus in on a time region
+
     ax[0].plot(arr1[:,ind_t], arr1[:,ind_c],'.-b', label="Pixel Error 1")
     ax[0].plot(arr2[:,ind_t], arr2[:,ind_c],'.-r', label="Pixel Error 2")
     #ax[0].plot(arr1[:,0], arr1[:,3],'.-', color="black", label="total err")
@@ -76,7 +79,7 @@ if True:  # This graph shows camera error vs motor steps over time
     ax[0].set_xlabel("Time")
     ax[0].set_ylabel("Pixels")
     ax[0].legend(loc="upper right")#, fancybox=True, framealpha=1)
-    ax[0].set_xlim(-.03*time_elapsed, 1.03*time_elapsed) # make graphs have same (asethetic) time length
+    ax[0].set_xlim(left_time, right_time) # make graphs have same (asethetic) time length
     #ax[0].set_ylim(-1.5,1.5)
     ax[0].axhline(0, color="black", linewidth=.5)
 
@@ -84,8 +87,8 @@ if True:  # This graph shows camera error vs motor steps over time
     purple = 'tab:purple'
 
     ax[1].plot(ram_arr[:,0], ram_arr[:,1],'.-', color=green, label="% CPU usage")    
-    ax[1].set_ylabel("% CPU usage", color=green)
-    ax[1].set_xlim(-.03*time_elapsed, 1.03*time_elapsed)
+    ax[1].set_ylabel("% Processor Time", color=green)
+    ax[1].set_xlim(left_time, right_time)
     ax[1].set_ylim(np.min(ram_arr[:,1]), np.max(ram_arr[:,1]))
     ax[1].tick_params(axis='y', labelcolor=green)
 

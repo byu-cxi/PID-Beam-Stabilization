@@ -122,7 +122,7 @@ def FrameHook(info, data):
     img = np.flip(np.array(data.contents)[:,:,0], 0)
     #del data # delete data to free space
     #max = np.max(np.max(img))
-    img[img < np.max(img)*.5] = 0
+    img[img < np.max(img)*.4] = 0
     center_mass = center_of_mass(img)
 
     if np.isnan(center_mass).any(): # If so, then the entire image is below 50% max (aka it's all zeros, or something else weird)
@@ -286,7 +286,7 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
         # This is the amount of shift the PID controller recommends. If there is a dead zone, this does not record that
 
     # --- Save the error data! I want to make figures from this later! ---
-    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_stabilized.csv'
+    csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_unstabilized.csv'
     with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
         writer = csv.writer(f)
         names = [["time_steps1","y_cam_err1","x_cam_err1","tot_cam_err1","y_mot_steps1","x_mot_steps1" 
@@ -306,6 +306,9 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
 
 
 
+
+
+track_but_dont_stabilize = True
 
 
 if __name__ == "__main__":
@@ -368,8 +371,7 @@ if __name__ == "__main__":
 
                 mot_step_tracker.append([y_step_num1, x_step_num1, y_step_num2, x_step_num2])
 
-                if False: # turn this on when testing if the code can figure out what motor was moved
-                    #breakpoint()
+                if track_but_dont_stabilize: # turn this on when wanting to track error, but not correct it
                     y_step_num1, x_step_num1, y_step_num2, x_step_num2 = (0,0,0,0)
             else:
                 time.sleep(sleep_time)
