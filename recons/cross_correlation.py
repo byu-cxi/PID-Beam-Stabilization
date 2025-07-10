@@ -5,13 +5,13 @@ from pathlib import Path
 import os
 import tifffile as ti
 
-un = "" # change this from "" to "un" to change from stabilized images to unstabilized
-out_name1 = un + "stable8.tiff" # name that the output images are named
-out_name2 = un + "stable9.tiff"
+un = "un" # change this from "" to "un" to change from stabilized images to unstabilized
+out_name1 = un + "stable12.tiff" # name that the output images are named
+out_name2 = un + "stable13.tiff"
 
 psi = 'psi.tiff'
-im1 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), un+'stabilized8', psi)))
-im2 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), un+'stabilized9', psi)))
+im1 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), un+'stabilized12', psi)))
+im2 = np.array(ti.imread(Path(os.getcwd(), os.path.dirname(__file__), un+'stabilized13', psi)))
 
 
 # These images have high backgrounds, this will help fix problems that come from that
@@ -59,9 +59,10 @@ crisp_center23 = (555, 165, 550, 165)
 crisp_center45 = (540,165,530,165)
 crisp_center67 = (560,145,550,145)
 crisp_center89 = (550,155,540,155)
+crisp_center1011 = crisp_center89
+crisp_center1213 = crisp_center89
 
-
-top, vrad, left, hrad = crisp_center89
+top, vrad, left, hrad = crisp_center1213
 
 im1_cropping = ((top,top+vrad),(left,left+hrad))
 
