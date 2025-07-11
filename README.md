@@ -8,7 +8,7 @@ Setting up the proper conda environment is tricky, so I wrote notes in `Conda En
 This code is designed for two cameras and two motorized mirrors (meaning four motors), which allows it to correct both Position and Poynting error. It assumes that error in the X direction can be corrected with limited impact on the Y error, and vise versa.
 
 Getting started:
-- Follow instructions for the physical setup by watching the video (TODO make video, describe where to find it).
+- Follow instructions for the physical setup by watching the video (Box.byu.edu  "/HHGsetup/PID Beam Stabilization documentation video.mp4", or in Hyrum Taylor's personal folder, main directory in the lab box folder).
 - Set up the Conda environment, as described in `Conda Environment Creation.txt`. Verify the environment is working using the minimal test codes.
 - Use `auto-calibration.py` to set parameters in `vals.py`. 
 - Run `main.py`, manually add some noise, and make sure it is stabilizing correctly. If it isn't stabilizing well, tune the PID values in `helper.py`.
