@@ -1,13 +1,42 @@
+# Note: For some reason, the conda environment that the rest of the code is in has a hard time with h5py, so 
+    # for this file, create a new conda env: none of these are the messy packages, so it should be an easy install.
+
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.lines import Line2D
 from pathlib import Path
 import os
 import csv
 import tifffile as ti
 import h5py as h
 
+# Stolen from stackoverflow.com/questions/43258638/is-there-a-convenient-way-to-add-a-scale-indicator-to-a-plot-in-matplotlib
+class AnchoredHScaleBar(matplotlib.offsetbox.AnchoredOffsetbox):
+    """ size: length of bar in data units
+        extent : height of bar ends in axes units """
+    def __init__(self, size=1, extent = 0.03, label="", loc=2, ax=None,
+                 pad=0.4, borderpad=0.5, ppad = 0, sep=2, prop=None, 
+                 frameon=True, linekw={}, **kwargs):
+        if not ax:
+            ax = plt.gca()
+        trans = ax.get_xaxis_transform()
+        size_bar = matplotlib.offsetbox.AuxTransformBox(trans)
+        line = Line2D([0,size],[0,0], **linekw)
+        vline1 = Line2D([0,0],[-extent/2.,extent/2.], **linekw)
+        vline2 = Line2D([size,size],[-extent/2.,extent/2.], **linekw)
+        size_bar.add_artist(line)
+        size_bar.add_artist(vline1)
+        size_bar.add_artist(vline2)
+        txt = matplotlib.offsetbox.TextArea(label, textprops={'fontproperties':{'size':7}})
+        self.vpac = matplotlib.offsetbox.VPacker(children=[size_bar,txt],  
+                                 align="center", pad=ppad, sep=sep) 
+        matplotlib.offsetbox.AnchoredOffsetbox.__init__(self, loc, pad=pad, 
+                 borderpad=borderpad, child=self.vpac, prop=prop, frameon=frameon,
+                 **kwargs)
+
 # Fancy pictures of the Correlated reconstruction images
-if False:
+if True:
     # In the thesis, I changed scan numbers for reader understanding:
     # Scan 8 -> scan 1:1
     # Scan 9 -> scan 1:2
@@ -92,13 +121,16 @@ if False:
     ax[5,0].imshow(im6_stable) # fourth left
     ax[5,0].set_xticks(())
     ax[5,0].set_yticks(())
+    ob = AnchoredHScaleBar(size=71.4, label="200 microns", loc=8, frameon=True, pad=0.2, sep=2, linekw=dict(color="crimson"),) 
+    ax[5,0].add_artist(ob)
 
     ax[5,1].imshow(im6_unstable) # fourth right
     ax[5,1].annotate("Scans 3:2", xy=(.6,1), xytext=(-shape56[1]*num,shape56[0]/2))
     ax[5,1].set_xticks(())
     ax[5,1].set_yticks(())
 
-    plt.savefig("recon imgs")
+    #plt.show()
+    plt.savefig("Recon Comparison")
 
 def GetArrFromCSV(csv_name):
         # Analyze csv files to make nice figures about error over time
@@ -207,6 +239,10 @@ if False:
     ax[1,1].set_xticks(())
     ax[1,1].set_yticks(())
 
+    ob = AnchoredHScaleBar(size=71.4, label="200 microns", loc=4, frameon=True, pad=0.2, sep=2, linekw=dict(color="crimson"),) 
+    ax[0,0].add_artist(ob)
+
+    #plt.show()
     plt.savefig("psi recon process")
 
 

@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 
-height = 2560 # camera pixel dimensions
+height = 2560 # camera pixel dimensions - make sure these are right. These ones are for Mightex SME-C050-U
 width = 1920
 metadata_size = 128
 img_size = metadata_size + (height*width)
@@ -16,6 +16,9 @@ binning = 2**bin_choice
 
 gain_choice = 32 # gain is 2^((num-8)/8) : gain goes .125x -> 8x
 exposure_choice = 4 # multiply the number by 50 um to get exposure time, max 15
+
+beam_threshold = .4 # When taking images of the beam, we need to get rid of all the noise, or center_of_mass will fail badly.
+                    # This value tells how much to threshold by. Too high, and we'll start getting dark frames all the time
 
 # Get these values from auto-calibration.py code
 # Assumption made that movement of the X motor doen't change the Y location (and vice versa)

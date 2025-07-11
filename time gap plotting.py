@@ -1,3 +1,12 @@
+# One problem that I was running into is that the code just stops working for a few minutes at a time. I was trying to figure
+    # out why this was happening so I could fix it. Look at Hyrum Taylor's research notebook June 23 - July 1 for how to record
+    # system data.
+# Once the system data is recorded along with a time gap in the stabilization code, I can use this code to plot and see how system
+    # resources are related to the time gaps. Spoiler, on July 1, I found that the processor time is spiking signficnatly, 
+    # but I'm not sure how to fix it.
+# However, as long as the computer isn't doing anything else super strenuous (like waking up after a restart), time gaps don't
+    # happen, so unless it really starts being a problem, I'm not worried about this for now.
+
 import numpy as np
 import matplotlib.pyplot as plt
 import csv

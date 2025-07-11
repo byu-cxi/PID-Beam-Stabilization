@@ -1,3 +1,11 @@
+# This is not strictly related to beam stabilization: It is here for reconstructed image analysis for my senior thesis.
+# In order to do Fourier Ring Correlation (FRC), we need to have two images from two different ptychography scans
+    # that are of the same sample. FRC then compares the two images, and sees what is different. In order to have this
+    # work, we need to have the samples centered at the same point. Cross-correlation allows us to find how to shift one image
+    # to be exactly aligned with the other.
+# This code crops one image to a region that I want, then crops the other image after cross-correlating, so that
+    # we have two very similar images from different scans. These can then be used in FIJI ImageJ for FRC analysis.
+
 import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt

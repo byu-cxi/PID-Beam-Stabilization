@@ -7,7 +7,7 @@
     # This will also allow you to get 2 estimates for the calibration number.
 cam_num = 2 # current setup: 1=upstream, 2=downstream
 mot_num = 4 # current setup: 1=Y1, 2=X1, 3=Y2, 4=X2
-num_steps = 100
+num_steps = 100  # change this to positive or negative to reverse directions of motor movement
 
 # If getting NaN as center of mass when running this file, maybe the thresholding in the callback function is too high
 

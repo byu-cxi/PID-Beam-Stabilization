@@ -8,11 +8,12 @@
     #     ├── SSClassic_USBCamera_SDK.dll
     #     └── SSUsbLib.dll
 
-# When moving to new system, what to do to get it set up:
-    # Change thresholding in FrameHook to properly get rid of background noise
-    # Update functions in CameraContext
-    # Run auto-calibration to get vals.py variables updated
-    # Determine whether the PID variables need to be updated?
+# When moving to new system, what to do to get it set up: (Note: this just adds some detail to the README.md getting started steps)
+    # Update vals.py values
+        # Change thresholding in FrameHook to properly get rid of background noise (beam_threshold in vals.py)
+        # Update functions in CameraContext   (Might not be neccessary? But keep it in mind. Especially, watch gain/exposure)
+        # Run auto-calibration to get vals.py variables updated
+    # Determine whether the PID variables need to be updated? (in helper.py)
 
 import time
 import ctypes
@@ -32,14 +33,14 @@ c_int = ctypes.c_int
 
 n = 20                      # int > 1 : used to control how many time steps back the Integral can see in the PID controller
 
-y1_axis = 1                 # What port on the motor controller box goes with what axis?
+y1_axis = 1                 # What port on the motor controller box goes with what axis? (This has nothing to do with cameras)
 x1_axis = 2                 # The important part is not mixing up the X and Y axes
 y2_axis = 3                 # My convention is that 1&2 go to the upstream motors, 3&4 to downstream: However, this is not essential
 x2_axis = 4
 
 
 
-baseline_center_1 = (0,0)     # will be set on the first image. This is the location the program tries to move toward
+baseline_center_1 = (0,0)     # The first image taken will be set as the goal to correct the beam toward. This stores that location
 baseline_center_2 = (0,0)
 baseline_not_set_1 = True
 baseline_not_set_2 = True
@@ -59,6 +60,7 @@ mot_step_tracker = []
 
 # -----------------Callback function & related-----------------------
 
+# If you want to hate your life for the next few weeks, mess with this class
 # One of the two arguments to the callback function is in this shape
 class attributeMirror(ctypes.Structure): # this class is needed in order to get the info from the TProcessedDataProperty struct
     _fields_ = [( "CameraID", c_int ),
@@ -85,6 +87,7 @@ class attributeMirror(ctypes.Structure): # this class is needed in order to get 
                 ( "FilterAcceptForFile", c_int ) ]
 
 # This has 3x the size of monochrome, but I only need the red array. Need to get all three though or nothing comes through
+# At some point, maybe try implementing "SSClassicUSB_SetBWMode" - it will make the code more efficient
 FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.POINTER(ctypes.c_ubyte*3*(height//binning)*(width//binning)))
 
 
@@ -99,14 +102,14 @@ FUNC_PROTOTYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(attributeMirror), ctypes.
 # This is the callback function for the camera (look up callback functions if you don't know what that means)
 # It takes the data properties as info (in the shape of attributeMirror), and the image data as arguments
 # It finds the center of mass of the image, and updates global variables with it
-    # (Note: this is called from a different thread each time, so returning normally isn't possible as far as I know)
-        # return will only stop the thread. To get data out of this function, I'm using global variables
+    # (Note: this is because it's called from a different thread each time, so returning data normally isn't possible as far as I know)
+        # "return" will only stop the thread. To get data out of this function, I'm using global variables
 def FrameHook(info, data):
         # Variables that should be different depending on what camera it's coming from
             # baseline_center
             # curr_img_center
             # baseline_not_set
-    cam_num = info.contents.CameraID # This is 1 or 2
+    cam_num = info.contents.CameraID # This is 1 or 2, depending on which camera it is
 
     global images_received_counter
     images_received_counter += 1
@@ -120,14 +123,12 @@ def FrameHook(info, data):
         return #This is where I filter out the half-image problem, or other failed images
 
     img = np.flip(np.array(data.contents)[:,:,0], 0)
-    #del data # delete data to free space
-    #max = np.max(np.max(img))
-    img[img < np.max(img)*.4] = 0
+    img[img < np.max(img)*beam_threshold] = 0
     center_mass = center_of_mass(img)
 
-    if np.isnan(center_mass).any(): # If so, then the entire image is below 50% max (aka it's all zeros, or something else weird)
+    if np.isnan(center_mass).any(): # If so, then the entire image is below threshold (aka it's all zeros, or something else weird)
         print("No center of mass found: is something wrong with the camera?")
-        if False: # debugging code - saves image to file
+        if False: # debugging code - saves image to file for analysis of what went wrong
             from PIL import Image
             im = Image.fromarray(img)
             im.save("image that failed to find center.jpeg")
@@ -185,7 +186,7 @@ def FrameHook(info, data):
 # Without this Ctrl-C handler, most of the time that you hit Ctrl-C, it will be while a function from
     # a .dll file is running. They were written in fortran, which has its own Ctrl-C handler, and it
     # throws some extremely uncatchable errors, meaning that it's impossible to run code after hitting Ctrl-C
-    # (cleanup or plotting error) without using this chunk of code
+    # (cleanup, data saving, or plotting) without using this chunk of code.
 CTRL_C_EVENT = 0
 # CTRL_BREAK_EVENT = 1
 # CTRL_CLOSE_EVENT = 2
@@ -262,6 +263,7 @@ def CameraContext(cam_dll): # if adding more than 2 cams, need to add code to al
 
 
 
+# This saves the error, motor steps, and timing to a CSV file for later analysis. Use "detailed csv analysis.py" to look at this
 def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2):
     from math import sqrt
     import csv 
@@ -269,23 +271,27 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
 
     if (len(time_steps_2) == 0):
             raise Exception("camera two never took images")
-    while (len(cam_error_tracker_1) > len(cam_error_tracker_2)): # camera 1 goes before camera 2, so camera 2 often has fewer images taken
+    
+    # Currently, the cameras both take images before I process them: These error checkers were written before I changed the code,
+        # so they are never going to catch anything. They aren't hurting anything, so let's leave them for now, in case I revert code back
+    while (len(cam_error_tracker_1) > len(cam_error_tracker_2)): # camera 1 used to go before camera 2, so camera 2 had fewer images taken
         cam_error_tracker_2.append([0,0])
         time_steps_2.append(None) # if arr2 is longer than arr1, then fill with null time steps
-    while (len(cam_error_tracker_2) > len(cam_error_tracker_1)): # Same as above
+    while (len(cam_error_tracker_2) > len(cam_error_tracker_1)): # Just in case camera 2 has more images than camera 1
         cam_error_tracker_1.append([0,0])
         time_steps_1.append(None)
 
 
-    y_cam_vals1, x_cam_vals1 = np.array(cam_error_tracker_1)[n:].transpose()
+    y_cam_vals1, x_cam_vals1 = np.array(cam_error_tracker_1)[n:].transpose()  # These are the recorded camera errors
     y_cam_vals2, x_cam_vals2 = np.array(cam_error_tracker_2)[n:].transpose()
     tot_cam_err1 = [sqrt(x**2 + y**2) for x,y in cam_error_tracker_1[n:]] # first n are initialized with zeros
     tot_cam_err2 = [sqrt(x**2 + y**2) for x,y in cam_error_tracker_2[n:]]
 
-    y_mot_shift_1, x_mot_shift_1, y_mot_shift_2, x_mot_shift_2 = np.array(mot_step_tracker).transpose()
+    y_mot_shift_1, x_mot_shift_1, y_mot_shift_2, x_mot_shift_2 = np.array(mot_step_tracker).transpose() # recorded number of motor steps?
         # This is the amount of shift the PID controller recommends. If there is a dead zone, this does not record that
 
     # --- Save the error data! I want to make figures from this later! ---
+        # This data stores the time images are taken, the camera error, and the number of motor steps taken
     csv_name = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S') + '_unstabilized.csv'
     with open(os.path.join(os.getcwd(),'CSV',csv_name), 'w', newline="") as f:
         writer = csv.writer(f)
@@ -307,8 +313,10 @@ def SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_erro
 
 
 
-
-track_but_dont_stabilize = True
+# When I was trying to demonstrate that this improves reconstructions, I wanted to watch error on cameras without stabilizing
+    # so that I could see how it responds without my code working. Making this variable True is how you can see the error
+    # without moving any motors.
+track_but_dont_stabilize = False
 
 
 if __name__ == "__main__":
@@ -316,15 +324,15 @@ if __name__ == "__main__":
 
     # Starts the context managers for the motors and the sleep modifier
     # Then runs loop checking to see if the camera has sent an image back yet
-        # If so, it moves the motors (if the move is big enough)
+        # If so, it uses PID to check how much to move the motors
 
     # These three functions are neccessary to get data out of the callback function
+        # It's weird, but it works, so don't touch
     msg = MSG()
     GM = user32.GetMessageA
     TM = user32.TranslateMessage
     DM = user32.DispatchMessageA
 
-    i = 0
     time_elapsed = 0
     time_steps_1 = []
     time_steps_2 = []
@@ -334,7 +342,6 @@ if __name__ == "__main__":
     with SleepModifier(sleep_time), CameraContext(cam_dll), Newport.Picomotor8742() as nwpt:
         t_start = time.time()
         while continue_loop: # ctrl+c will make this false
-            i += 1
             # These three functions are neccessary to get data out of the callback function
             GM(ctypes.pointer(msg), 0, 0, 0)
             TM(ctypes.pointer(msg))
@@ -350,8 +357,8 @@ if __name__ == "__main__":
             x_step_num2 = 0
 
             if (curr_img_center_1 != (0,0)) and (curr_img_center_2 != (0,0)):      # image taken from both cameras
-                y_err1, x_err1 = TupleSubtract(curr_img_center_1, baseline_center_1) # caluculate error in pixels
-                y_err2, x_err2 = TupleSubtract(curr_img_center_2, baseline_center_2) # caluculate error in pixels
+                y_err1, x_err1 = TupleSubtract(curr_img_center_1, baseline_center_1) # calculate error in pixels cam1
+                y_err2, x_err2 = TupleSubtract(curr_img_center_2, baseline_center_2) # calculate error in pixels cam2
                 images_processed_counter += 2
                 cam_error_tracker_1.append([y_err1, x_err1]) # so we can plot error later
                 cam_error_tracker_2.append([y_err2, x_err2])
@@ -419,6 +426,7 @@ if __name__ == "__main__":
 
 
     PrintStats(images_received_counter, images_processed_counter, images_failed_counter, images_dark_counter, time_elapsed)
+    return_list = SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2)
 
     # FOR ONE CAMERA - plot error over time for camera 1: x, y, and total
     if False:
@@ -436,7 +444,6 @@ if __name__ == "__main__":
 
     # FOR MAIN RUNS - plot total error for both cameras, and save all error data to csv
     if False:
-        return_list = SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2)
         y_vals1, x_vals1, tot_err1, y_steps1, x_steps1, y_vals2, x_vals2, tot_err2, y_steps2, x_steps2 = return_list
 
         print("length of cam 2 images is " + str(len(time_steps_2)))
@@ -450,9 +457,7 @@ if __name__ == "__main__":
         plt.show()
 
     # FOR CALIBRATING PI - but shows x and y errors on both cameras only, because that's what we use for tuning
-    if True:
-        
-        return_list = SaveErrorToCSV(mot_step_tracker, cam_error_tracker_1, time_steps_1, cam_error_tracker_2, time_steps_2)
+    if False:
         y_vals1, x_vals1, tot_err1, y_steps1, x_steps1, y_vals2, x_vals2, tot_err2, y_steps2, x_steps2 = return_list
 
         fig, ax = plt.subplots(2,2)

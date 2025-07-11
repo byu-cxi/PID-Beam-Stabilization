@@ -82,6 +82,8 @@ def SleepModifier(min_sleep):
     yield
     winmm.timeEndPeriod(min_sleep)
 
+# Winsorizing is where you take the average, but remove outliers. I found this to make calibration scans return
+    # more consistent answers. It's not strictly neccessary, but I think it helps a bit
 from scipy.stats.mstats import winsorize
 def find_winsored_average(mass_center_tracker):
     mass_center_tracker = np.array(mass_center_tracker)
