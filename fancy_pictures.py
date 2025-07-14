@@ -36,7 +36,7 @@ class AnchoredHScaleBar(matplotlib.offsetbox.AnchoredOffsetbox):
                  **kwargs)
 
 # Fancy pictures of the Correlated reconstruction images
-if True:
+if False:
     # In the thesis, I changed scan numbers for reader understanding:
     # Scan 8 -> scan 1:1
     # Scan 9 -> scan 1:2
@@ -45,90 +45,96 @@ if True:
     # Scan 12 -> scan 3:1
     # Scan 13 -> scan 3:2
 
-    im1_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable8.tiff')))
+    im1_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable8.tiff'))) # scan 8
     im1_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable8.tiff')))
-    im2_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable9.tiff')))
+    im2_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable9.tiff'))) # scan 9
     im2_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable9.tiff')))
     shape12 = im1_stable.shape
 
-    im3_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable10.tiff')))
+    im3_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable10.tiff'))) # scan 10
     im3_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable10.tiff')))
-    im4_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable11.tiff')))
+    im4_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable11.tiff'))) # scan 11
     im4_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable11.tiff')))
     shape34 = im3_stable.shape
 
-    im5_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable12.tiff')))
+    im5_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable12.tiff'))) # scan 12
     im5_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable12.tiff')))
-    im6_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable13.tiff')))
+    im6_unstable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'unstable13.tiff'))) # scan 13
     im6_stable = np.array(ti.imread(Path(os.getcwd(), 'recons', 'Correlated Images', 'stable13.tiff')))
     shape56 = im5_stable.shape
 
 
-    f,ax = plt.subplots(6,2, figsize=(5.2,9))
-    plt.suptitle("Stabilized vs. unstabilized reconstructions\n", fontweight='bold', fontsize=15)
+    f,ax = plt.subplots(4,3, figsize=(6.4,9))
+    plt.suptitle("Stabilized vs. Unstabilized Reconstructions", fontweight='bold', fontsize=15)
+    f.subplots_adjust(top=.92)
 
-    num = .95
-
-    ax[0,0].imshow(im1_stable) # top left
-    ax[0,0].set_title("Stabilized")
+    ax[0,0].imshow(im1_stable) # top, left
+    ax[0,0].set_title("Stable Scan 1:1", fontsize=9)
     ax[0,0].set_xticks(())
     ax[0,0].set_yticks(())
 
-    ax[0,1].imshow(im1_unstable) # top right
-    ax[0,1].set_title("Unstabilized")
-    ax[0,1].annotate("Scans 1:1", xy=(.6,1), xytext=(-shape12[1]*num,shape12[0]/2))
+    ax[0,1].imshow(im3_stable) # top, middle
+    ax[0,1].set_title("Stable Scan 2:1", fontsize=9)
     ax[0,1].set_xticks(())
     ax[0,1].set_yticks(())
 
-    ax[1,0].imshow(im2_stable) # second left
+    ax[0,2].imshow(im5_stable) # top, right
+    ax[0,2].set_title("Stable Scan 3:1", fontsize=9)
+    ax[0,2].set_xticks(())
+    ax[0,2].set_yticks(())
+
+
+    ax[1,0].imshow(im2_stable) # second, left
+    ax[1,0].set_title("Stable Scan 1:2", fontsize=9)
     ax[1,0].set_xticks(())
     ax[1,0].set_yticks(())
 
-    ax[1,1].imshow(im2_unstable) # second right
-    ax[1,1].annotate("Scans 1:2", xy=(.6,1), xytext=(-shape12[1]*num,shape12[0]/2))
+    ax[1,1].imshow(im4_stable) # second, middle
+    ax[1,1].set_title("Stable Scan 2:2", fontsize=9)
     ax[1,1].set_xticks(())
     ax[1,1].set_yticks(())
 
+    ax[1,2].imshow(im6_stable) # second, right
+    ax[1,2].set_title("Stable Scan 3:2", fontsize=9)
+    ax[1,2].set_xticks(())
+    ax[1,2].set_yticks(())
 
-    ax[2,0].imshow(im3_stable) # third left
+
+    ax[2,0].imshow(im1_unstable) # third, left
+    ax[2,0].set_title("Unstable Scan 1:1", fontsize=9)
     ax[2,0].set_xticks(())
     ax[2,0].set_yticks(())
 
-    ax[2,1].imshow(im3_unstable) # third right
-    ax[2,1].annotate("Scans 2:1", xy=(.6,1), xytext=(-shape34[1]*num,shape34[0]/2))
+    ax[2,1].imshow(im3_unstable) # third, middle
+    ax[2,1].set_title("Unstable Scan 2:1", fontsize=9)
     ax[2,1].set_xticks(())
     ax[2,1].set_yticks(())
 
-    ax[3,0].imshow(im4_stable) # fourth left
+    ax[2,2].imshow(im5_unstable) # third, right
+    ax[2,2].set_title("Unstable Scan 3:1", fontsize=9)
+    ax[2,2].set_xticks(())
+    ax[2,2].set_yticks(())
+
+
+    ax[3,0].imshow(im2_unstable) # bottom, left
+    ax[3,0].set_title("Unstable Scan 1:2", fontsize=9)
     ax[3,0].set_xticks(())
     ax[3,0].set_yticks(())
 
-    ax[3,1].imshow(im4_unstable) # fourth right
-    ax[3,1].annotate("Scans 2:2", xy=(.6,1), xytext=(-shape34[1]*num,shape34[0]/2))
+    ax[3,1].imshow(im4_unstable) # bottom, middle
+    ax[3,1].set_title("Unstable Scan 2:2", fontsize=9)
     ax[3,1].set_xticks(())
     ax[3,1].set_yticks(())
 
+    ax[3,2].imshow(im6_unstable) # bottom, right
+    ax[3,2].set_title("Unstable Scan 3:2", fontsize=9)
+    ax[3,2].set_xticks(())
+    ax[3,2].set_yticks(())
+    ob = AnchoredHScaleBar(size=71.4, label="200 microns", loc=4, frameon=True, pad=0.4, sep=2, linekw=dict(color="crimson"),) 
+    ax[3,2].add_artist(ob)
 
-    ax[4,0].imshow(im5_stable) # third left
-    ax[4,0].set_xticks(())
-    ax[4,0].set_yticks(())
-
-    ax[4,1].imshow(im5_unstable) # third right
-    ax[4,1].annotate("Scans 3:1", xy=(.6,1), xytext=(-shape56[1]*num,shape56[0]/2))
-    ax[4,1].set_xticks(())
-    ax[4,1].set_yticks(())
-
-    ax[5,0].imshow(im6_stable) # fourth left
-    ax[5,0].set_xticks(())
-    ax[5,0].set_yticks(())
-    ob = AnchoredHScaleBar(size=71.4, label="200 microns", loc=8, frameon=True, pad=0.2, sep=2, linekw=dict(color="crimson"),) 
-    ax[5,0].add_artist(ob)
-
-    ax[5,1].imshow(im6_unstable) # fourth right
-    ax[5,1].annotate("Scans 3:2", xy=(.6,1), xytext=(-shape56[1]*num,shape56[0]/2))
-    ax[5,1].set_xticks(())
-    ax[5,1].set_yticks(())
-
+    f.supylabel("    Unstabilized                                                 Stabilized", fontweight='bold', fontsize=12)
+    #f.tight_layout()
     #plt.show()
     plt.savefig("Recon Comparison")
 
