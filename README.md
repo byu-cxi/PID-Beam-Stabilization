@@ -1,3 +1,5 @@
+Written by Hyrum Taylor (hct10000 at gmail dot com)
+
 Ptychography requires extremely fine beam control, meaning that even tiny variations in the beam can cause large problems with reconstruction.
 This code stabilizes a beam by finding the center of mass of a beam on two cameras, and moving two mirrors to put that center of mass back to the original location in real time.
 In essence, it stabilizes 4 degrees of freedom: two vertical, and two horizontal.
