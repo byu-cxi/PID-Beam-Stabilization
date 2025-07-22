@@ -251,4 +251,43 @@ if False:
     #plt.show()
     plt.savefig("psi recon process")
 
+# create comparison of where beam is over course of scan? (plot image center over course of scan)
+if False:
+    arr11, arr12, time_elapsed1 = GetArrFromCSV("2025-07-03 19-33-00_unstabilized.csv")
+    arr21, arr22, time_elapsed2 = GetArrFromCSV("2025-07-03 20-08-35_unstabilized.csv")
+
+    ind_x = 2 # index for camera Y-axis, same for arr1 and arr2
+    ind_y = 1
+
+    x_st = arr11[:,ind_x]
+    y_st = arr11[:,ind_y]
+    x_unst = arr21[:,ind_x]
+    y_unst = arr21[:,ind_y]
+
+    lhs = -3
+    rhs = 3
+    top = 11
+    bot = -12
+
+    f,ax = plt.subplots(1,2)
+    f.suptitle("Beam Center on Camera 1 Throughout Scans 1:1\n", fontweight='bold', fontsize=14)
+
+    ax[0].plot(x_st, y_st, '.')
+    ax[0].set_ylim((bot,top))
+    ax[0].set_xlim((lhs,rhs))
+    ax[0].set_aspect('equal', adjustable='box')
+    ax[0].set_xlabel("Horizontal error (pixels)")
+    ax[0].set_ylabel("Vertical error (pixels)")
+    ax[0].set_title("Stabilized", fontweight='bold', fontsize=10)
+
+    ax[1].plot(x_unst, y_unst, '.')
+    ax[1].set_ylim((bot,top))
+    ax[1].set_xlim((lhs,rhs))
+    ax[1].set_aspect('equal', adjustable='box')
+    ax[1].set_xlabel("Horizontal error (pixels)")
+    ax[1].set_ylabel("Vertical error (pixels)")
+    ax[1].set_title("Unstabilized", fontweight='bold', fontsize=10)
+
+    #plt.show()
+    plt.savefig("Beam Center Plot")
 
