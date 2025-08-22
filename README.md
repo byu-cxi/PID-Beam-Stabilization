@@ -7,7 +7,7 @@ It shouldn't change the beam shape: it only stabilizes the position of the beam 
 
 Setting up the proper conda environment is tricky, so I wrote notes in `Conda Environment Creation.txt`, although I have not tested the sequence on another machine. `Minimal test motor.py` and `minimal test camera.py` can be used to check if the environment is set up correctly. There is also an `environment backup.yml` file, if the txt file doesn't work completly.
 
-This code is designed for two cameras and two motorized mirrors (meaning four motors), which allows it to correct both Position and Poynting error. It assumes that error in the X direction can be corrected with limited impact on the Y error, and vise versa.
+This code is designed for two cameras and two motorized mirrors (meaning four motors), which allows it to correct both Position and Poynting error. It assumes that error in the X direction can be corrected with limited impact on the Y error, and vise versa.  For details on the math behind this, and how to use pixel shifts to determine how far to move the motors, see the `Laser Stabilization Math Writeup.pdf` document.
 
 Getting started:
 - Follow instructions for the physical setup by watching the video (Box.byu.edu  "/HHGsetup/PID Beam Stabilization documentation video.mp4", or in Hyrum Taylor's personal folder, main directory in the lab box folder).
